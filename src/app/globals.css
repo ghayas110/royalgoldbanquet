@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark (default) — deep charcoal + champagne gold */
+  --bg: 11 11 13;
+  --surface: 22 22 26;
+  --surface-2: 28 28 33;
+  --border: 60 54 34;
+  --text: 245 241 232;
+  --text-muted: 201 196 182;
+  --text-dim: 138 134 123;
+  --gold: 201 162 39;
+  --gold-light: 240 214 123;
+}
+
+:root.light {
+  /* Light variant — ivory base, gold accent, charcoal text */
+  --bg: 245 241 232;
+  --surface: 255 253 248;
+  --surface-2: 249 245 236;
+  --border: 214 205 178;
+  --text: 20 18 12;
+  --text-muted: 74 68 54;
+  --text-dim: 122 114 96;
+  --gold: 166 132 28;
+  --gold-light: 201 162 39;
+}
+
+* { border-color: rgb(var(--border) / 0.6); }
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-feature-settings: 'ss01', 'cv01';
+  min-height: 100vh;
+}
+
+/* Tabular numerals — mandatory on all money figures */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+/* Subtle grain overlay */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Gold text gradient */
+.text-gold-gradient {
+  background: linear-gradient(120deg, #C9A227, #F0D67B, #C9A227);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Card surfaces */
+.surface {
+  background-color: rgb(var(--surface));
+  border: 1px solid rgb(var(--border) / 0.5);
+}
+
+.surface-glass {
+  background-color: rgb(var(--surface) / 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgb(var(--gold) / 0.22);
+}
+
+/* Hairline divider tables */
+.hairline { border-color: rgb(var(--border) / 0.4); }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgb(var(--bg)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--border) / 0.8); border-radius: 6px; border: 2px solid rgb(var(--bg)); }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--gold) / 0.5); }
+
+/* Focus ring for keyboard nav */
+:focus-visible { outline: 2px solid rgb(var(--gold) / 0.7); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* ── Spreadsheet grid (petty cash) ── */
+.pc-grid { border-collapse: separate; border-spacing: 0; }
+.pc-grid th, .pc-grid td { border-right: 1px solid rgb(var(--border) / 0.35); border-bottom: 1px solid rgb(var(--border) / 0.35); }
+.pc-grid .frozen-col { position: sticky; left: 0; z-index: 2; background-color: rgb(var(--surface)); }
+.pc-grid thead th { position: sticky; top: 0; z-index: 3; background-color: rgb(var(--surface-2)); }
+.pc-grid thead th.frozen-col { z-index: 4; }
+.pc-cell-input {
+  width: 100%; background: transparent; text-align: right;
+  font-variant-numeric: tabular-nums; padding: 6px 8px; outline: none;
+  color: rgb(var(--text));
+}
+.pc-cell-input:focus { background-color: rgb(var(--gold) / 0.12); box-shadow: inset 0 0 0 1px rgb(var(--gold) / 0.6); }
+
+/* ── Print styles (first-class deliverable) ── */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  @page landscape { size: A4 landscape; }
+  html, body { background: #fff !important; color: #111 !important; font-size: 11pt !important; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .print-page { page-break-after: always; }
+  .print-page:last-child { page-break-after: auto; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  .surface, .surface-glass { background: #fff !important; border: 1px solid #ccc !important; backdrop-filter: none !important; box-shadow: none !important; }
+  .grain::before { display: none !important; }
+
+  /* ── Invoice Slip ── */
+  .print-slip { background: #fff !important; color: #111 !important; }
+  .print-slip * { color: #111 !important; border-color: #ccc !important; }
+  .print-slip .slip-gold { color: #8B6914 !important; }
+  .print-slip .slip-gold-border { border-color: #C9A227 !important; }
+  .print-slip .slip-gold-bg { background: #FDF8E8 !important; }
+  .print-slip .slip-dim { color: #666 !important; }
+  .print-slip .slip-muted { color: #555 !important; }
+
+  /* Dark letterhead / footer bands with the gold logo (match the client's slip) */
+  .print-band {
+    background: #0B0B0D !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border-radius: 3px !important;
+  }
+  .print-slip .print-band, .print-slip .print-band * { color: #F0D67B !important; border-color: #C9A227 !important; }
+  .print-slip .print-band .text-gold-gradient {
+    -webkit-text-fill-color: #F0D67B !important;
+    background: none !important;
+    color: #F0D67B !important;
+  }
+  .print-slip .print-band .text-gold-light { color: #E4C766 !important; }
+
+  .print-slip-header { border-bottom: 3px solid #C9A227 !important; }
+  .print-slip-badge {
+    display: inline-block !important;
+    padding: 2px 10px !important;
+    border: 2px solid #111 !important;
+    font-weight: 700 !important;
+    font-size: 9pt !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+  }
+  .print-slip-badge-paid { border-color: #2E7D32 !important; color: #2E7D32 !important; }
+  .print-slip-badge-partial { border-color: #E65100 !important; color: #E65100 !important; }
+  .print-slip-badge-outstanding { border-color: #C62828 !important; color: #C62828 !important; }
+
+  .print-invoice-table { width: 100% !important; border-collapse: collapse !important; }
+  .print-invoice-table th {
+    background: #F5F0E0 !important;
+    border: 1px solid #D6CDB2 !important;
+    padding: 6px 10px !important;
+    font-size: 8pt !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #555 !important;
+  }
+  .print-invoice-table td {
+    border: 1px solid #E0DACE !important;
+    padding: 5px 10px !important;
+    font-size: 9.5pt !important;
+  }
+  .print-invoice-table tbody tr:nth-child(even) { background: #FAFAF5 !important; }
+  .print-invoice-table tfoot td {
+    background: #F5F0E0 !important;
+    font-weight: 700 !important;
+    border-top: 2px solid #C9A227 !important;
+  }
+
+  .print-due-banner {
+    background: #FFF3E0 !important;
+    border: 2px solid #E65100 !important;
+    padding: 8px 16px !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+    font-size: 11pt !important;
+  }
+  .print-due-banner-paid {
+    background: #E8F5E9 !important;
+    border-color: #2E7D32 !important;
+    color: #2E7D32 !important;
+  }
+
+  .print-terms {
+    border: 1px solid #D6CDB2 !important;
+    background: #FDFBF5 !important;
+    padding: 10px 14px !important;
+    font-size: 7.5pt !important;
+    color: #666 !important;
+    line-height: 1.6 !important;
+  }
+
+  .print-signature-block {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding-top: 40px !important;
+  }
+  .print-signature-line {
+    width: 180px !important;
+    border-top: 1px solid #999 !important;
+    padding-top: 6px !important;
+    text-align: center !important;
+    font-size: 8pt !important;
+    color: #666 !important;
+  }
+
+  /* ── Report pages ── */
+  .print-report-kpi {
+    display: inline-block !important;
+    border: 1px solid #D6CDB2 !important;
+    padding: 8px 14px !important;
+    text-align: center !important;
+    min-width: 120px !important;
+  }
+  .print-report-kpi-label {
+    font-size: 7pt !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: #888 !important;
+  }
+  .print-report-kpi-value {
+    font-size: 14pt !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+    color: #111 !important;
+  }
+  .print-report-kpi-gold .print-report-kpi-value { color: #8B6914 !important; }
+  .print-report-kpi-gold { border-color: #C9A227 !important; background: #FDF8E8 !important; }
+
+  .print-report-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; }
+  .print-report-table th {
+    background: #F5F0E0 !important;
+    border-bottom: 2px solid #C9A227 !important;
+    padding: 5px 8px !important;
+    font-size: 7.5pt !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #555 !important;
+    text-align: left !important;
+  }
+  .print-report-table td {
+    border-bottom: 1px solid #E8E4D8 !important;
+    padding: 4px 8px !important;
+    color: #333 !important;
+  }
+  .print-report-table tbody tr:nth-child(even) { background: #FAFAF5 !important; }
+  .print-report-table tfoot td {
+    background: #F5F0E0 !important;
+    font-weight: 700 !important;
+    color: #8B6914 !important;
+    border-top: 2px solid #C9A227 !important;
+    padding: 6px 8px !important;
+  }
+
+  .print-watermark {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(-35deg) !important;
+    font-size: 72pt !important;
+    font-weight: 900 !important;
+    color: rgba(0,0,0,0.04) !important;
+    pointer-events: none !important;
+    white-space: nowrap !important;
+    z-index: 0 !important;
+  }
+}
+.print-only { display: none; }

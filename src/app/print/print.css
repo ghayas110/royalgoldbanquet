@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════
+   Standalone print documents (/print/*) — theme-independent.
+   On screen: a centered A4 "sheet" on a neutral backdrop (PDF preview).
+   On print: only the sheet, full A4, no app chrome.
+   ═══════════════════════════════════════════════════════════ */
+
+.rgb-backdrop {
+  min-height: 100vh;
+  background: #2b2a27;
+  padding: 22px 12px 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.rgb-toolbar {
+  width: 210mm;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rgb-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border-radius: 10px; padding: 9px 16px; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent; transition: all .15s;
+}
+.rgb-btn-gold { background: #C9A227; color: #0B0B0D; }
+.rgb-btn-gold:hover { background: #E4C766; }
+.rgb-btn-ghost { background: transparent; color: #d8d2c4; border-color: #55524a; }
+.rgb-btn-ghost:hover { border-color: #C9A227; color: #fff; }
+
+/* ── The A4 sheet ── */
+.rgb-sheet {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #262219;
+  box-shadow: 0 14px 60px rgba(0,0,0,.45);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.rgb-body { padding: 9mm 13mm 5mm; flex: 1 0 auto; }
+.rgb-display { font-family: var(--font-display), Georgia, 'Times New Roman', serif; }
+.tnum2 { font-variant-numeric: tabular-nums; }
+
+/* ── Letterhead / footer bands (dark, gold) ── */
+.rgb-band {
+  background: #0B0B0D;
+  color: #F0D67B;
+  text-align: center;
+  padding: 11px 16px 10px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.rgb-band-footer {
+  background: #0B0B0D; color: #E4C766;
+  padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px 22px; font-size: 10px; font-weight: 600;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* ── Logo (recreated wordmark) ── */
+.rgb-logo-word { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
+.rgb-logo-gold { color: #F0D67B; }
+.rgb-logo-sub { font-family: var(--font-display), Georgia, serif; font-style: italic; letter-spacing: 0.18em; color: #E4C766; }
+.rgb-flourish { color: #C9A227; }
+
+/* ── Meta row ── */
+.rgb-meta { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+  padding: 8px 0 8px; border-bottom: 2px solid #C9A227; margin-bottom: 10px; }
+.rgb-doc-title { font-size: 17px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #1a1a1a; }
+.rgb-slipno { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; margin-top: 2px; color: #4a4436; }
+.rgb-contact { font-size: 9.5px; color: #6b6455; line-height: 1.7; }
+
+.rgb-badge { display: inline-block; padding: 2px 11px; border: 2px solid; font-weight: 700;
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 3px; }
+.rgb-badge-paid { border-color: #2E7D32; color: #2E7D32; }
+.rgb-badge-partial { border-color: #E65100; color: #E65100; }
+.rgb-badge-due { border-color: #C62828; color: #C62828; }
+
+/* ── Section label ── */
+.rgb-sec { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #8a6d15; margin: 9px 0 4px; }
+
+/* ── Tables ── */
+.rgb-table { width: 100%; border-collapse: collapse; }
+.rgb-table th { background: #F3EEE0; border: 1px solid #E2D9C0; padding: 6px 9px; font-size: 8.5px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6455; text-align: left;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rgb-table td { border: 1px solid #EDE6D3; padding: 3.5px 9px; font-size: 10px; color: #322d22; }
+.rgb-table tbody tr:nth-child(even) td { background: #FBF9F2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rgb-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+.rgb-table tfoot td { background: #F3EEE0; font-weight: 700; border-top: 2px solid #C9A227;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Key-value info grid */
+.rgb-kv { width: 100%; border-collapse: collapse; }
+.rgb-kv td { border: 1px solid #EDE6D3; padding: 4px 9px; font-size: 10px; }
+.rgb-kv .k { background: #F3EEE0; font-weight: 600; color: #4a4436; width: 24%;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Account summary (right aligned mini table) */
+.rgb-sum { width: 100%; border-collapse: collapse; }
+.rgb-sum td { padding: 4px 0; font-size: 10.5px; }
+.rgb-sum tr { border-bottom: 1px solid #EDE6D3; }
+.rgb-sum .lbl { color: #6b6455; }
+.rgb-sum .val { text-align: right; font-variant-numeric: tabular-nums; }
+.rgb-sum .total td { font-weight: 700; border-top: 1px solid #C9A227; border-bottom: 2px solid #C9A227; }
+.rgb-sum .grand td { font-weight: 800; font-size: 12px; border-bottom: none; }
+
+/* Banner */
+.rgb-banner { margin-top: 9px; padding: 7px 16px; text-align: center; font-weight: 800;
+  font-size: 12px; letter-spacing: 0.03em; border-radius: 4px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rgb-banner-due { background: #FFF3E0; border: 2px solid #E65100; color: #C0410E; }
+.rgb-banner-paid { background: #E8F5E9; border: 2px solid #2E7D32; color: #2E7D32; }
+
+/* Terms */
+.rgb-terms { margin-top: 9px; border: 1px solid #E2D9C0; background: #FDFBF4; border-radius: 4px;
+  padding: 7px 12px; font-size: 8.5px; color: #6b6455; line-height: 1.6;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Signatures */
+.rgb-signs { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-top: 14px; }
+.rgb-sign-line { flex: 1; border-top: 1px solid #9a9382; padding-top: 5px; text-align: center; font-size: 9px; color: #6b6455; }
+.rgb-stamp { width: 58px; height: 58px; border: 1px dashed #d8cfb8; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 7px; color: #c3b993; }
+
+/* KPI cards (report) */
+.rgb-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 4px 0 6px; }
+.rgb-kpi { border: 1px solid #E2D9C0; border-radius: 6px; padding: 10px 12px; text-align: center; }
+.rgb-kpi-gold { border-color: #C9A227; background: #FCF7E7; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rgb-kpi-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a6d15; }
+.rgb-kpi-val { font-family: var(--font-display), serif; font-size: 16px; margin-top: 3px; color: #1a1a1a; }
+
+.rgb-hr { border: none; border-top: 1px solid #EDE6D3; margin: 12px 0; }
+.rgb-note { font-size: 8px; color: #a49c88; text-align: center; margin-top: 8px; }
+
+/* Landscape page (petty-cash matrix inside the report) */
+.rgb-sheet-land { width: 297mm; min-height: 210mm; }
+
+/* ═══ PRINT ═══ */
+@media print {
+  @page { size: A4; margin: 0; }
+  @page landscape { size: A4 landscape; margin: 0; }
+  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .grain::before { display: none !important; }
+  .rgb-toolbar { display: none !important; }
+  .rgb-backdrop { display: block; background: #fff; padding: 0; margin: 0; }
+  .rgb-sheet { box-shadow: none; width: 210mm; min-height: auto; }
+
+  /* One-page documents (invoice, income): shrink to content, never spill */
+  .rgb-onepage { min-height: 0 !important; height: auto !important; max-height: 296mm; overflow: hidden; }
+  .rgb-onepage .rgb-body { flex: 0 0 auto; }
+
+  /* Multi-page report: each sheet is its own page */
+  .rgb-report-sheet { break-after: page; page-break-after: always; }
+  .rgb-report-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .rgb-sheet-land { page: landscape; width: 297mm; min-height: auto; }
+
+  .rgb-page-break { break-before: page; }
+  .rgb-avoid-break { break-inside: avoid; }
+}
