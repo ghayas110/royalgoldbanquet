@@ -1,5 +1,6 @@
 'use client';
 
+import { toWaNumber } from '@/lib/brand-info';
 import { useTransition } from 'react';
 import { fmtDate } from '@/lib/format';
 import { setLeadStatus } from '@/lib/actions/misc';
@@ -14,7 +15,7 @@ export function LeadRow({ lead }: { lead: { id: number; name: string; phone: str
   return (
     <tr className="border-b border-[rgb(var(--border)/0.25)] last:border-0 hover:bg-[rgb(var(--surface-2)/0.4)]">
       <td className="px-4 py-3 text-[rgb(var(--text))]">{lead.name}</td>
-      <td className="px-4 py-3"><a href={`https://wa.me/${lead.phone.replace(/[^\d]/g, '')}`} className="text-gold hover:underline">{lead.phone}</a></td>
+      <td className="px-4 py-3"><a href={`https://wa.me/${toWaNumber(lead.phone) ?? ''}`} className="text-gold hover:underline">{lead.phone}</a></td>
       <td className="px-4 py-3 text-[rgb(var(--text-muted))]">{fmtDate(lead.event_date)}</td>
       <td className="px-4 py-3 max-w-xs truncate text-[rgb(var(--text-dim))]">{lead.message}</td>
       <td className="px-4 py-3 text-[rgb(var(--text-dim))]">{lead.source}</td>

@@ -2,7 +2,7 @@ import { requirePermission } from '@/lib/session';
 import { getRules } from '@/lib/data';
 import { RulesClient } from './rules-client';
 
-export const metadata = { title: 'Rules — Royal Gold Banquet' };
+export const metadata = { title: 'Rules — Skylight Ballroom & Catering' };
 
 export default async function RulesPage() {
   await requirePermission('rules.manage');

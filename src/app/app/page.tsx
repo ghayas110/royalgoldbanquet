@@ -1,6 +1,7 @@
 import { requireUser, can } from '@/lib/session';
 import {
   getDefaultPeriod, getMonthlyFinancials, getTrend, getUpcomingEvents, getOutstandingBalances,
+  getBookingSummary, getReturnedBookings, getAllTimeExpenseLines,
 } from '@/lib/data';
 import { buildMonthlySale } from '@/lib/accounting';
 import { fmtMoney, fmtDate, monthLabelFull } from '@/lib/format';
@@ -15,20 +16,32 @@ export default async function Dashboard() {
   const showProfit = can(user.permissions, 'profit.view');
   const { year, month } = await getDefaultPeriod();
 
-  const fin = await getMonthlyFinancials(year, month);
+  const [fin, allTimeExpenses] = await Promise.all([
+    getMonthlyFinancials(year, month),
+    getAllTimeExpenseLines(),
+  ]);
+  const monthlyOperatingExpenseLines = fin.expenseLines.filter(
+    (l) => l.name !== 'Booking Refund' && !l.name.toLowerCase().includes('refund')
+  );
   const ms = buildMonthlySale({
     settled: fin.settled, newBookings: fin.newBookings,
-    expenseLines: fin.expenseLines, disbursements: fin.disbursements,
+    expenseLines: monthlyOperatingExpenseLines, disbursements: fin.disbursements,
     attribution: fin.attribution,
   });
-  const [trend, upcoming, outstanding] = await Promise.all([
+  const [trend, upcoming, outstanding, summary, returned] = await Promise.all([
     getTrend(year, month, 6), getUpcomingEvents(6), getOutstandingBalances(8),
+    getBookingSummary(), getReturnedBookings(6),
   ]);
+  const returnedTotal = returned.reduce((s: number, r: any) => s + Number(r.refunded_amount), 0);
 
   const floatOutstanding = fin.disbursements.reduce(
     (s, d) => s + (d.amount_disbursed - d.expenses_recorded - d.amount_returned), 0);
   const totalExpenses = ms.pnl.expenses;
-  const donutData = fin.expenseLines.filter((l) => l.total > 0).map((l) => ({ name: l.name, value: l.total }));
+
+  const allTimeOperatingExpenseLines = allTimeExpenses.filter(
+    (l) => l.name !== 'Booking Refund' && !l.name.toLowerCase().includes('refund')
+  );
+  const donutData = allTimeOperatingExpenseLines.filter((l) => l.total > 0).map((l) => ({ name: l.name, value: l.total }));
 
   return (
     <div className="space-y-6">
@@ -38,21 +51,22 @@ export default async function Dashboard() {
             Good day, <span className="text-gold-gradient">{user.name?.split(' ')[0]}</span>
           </h1>
           <p className="mt-1 text-sm text-[rgb(var(--text-dim))]">
-            {user.role === 'MANAGER' ? 'Operations overview' : 'Owner overview'} · {monthLabelFull(year, month)}
+            {user.role === 'MANAGER' ? 'Operations overview' : 'Owner overview'} · All-time statistics
           </p>
         </div>
-        <Badge tone="gold">{monthLabelFull(year, month)}</Badge>
+        <Badge tone="gold">All-time Overview</Badge>
       </FadeUp>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Total Sale" value={ms.pnl.totalSale} icon={<Receipt className="h-5 w-5" />} delay={0.02} sub={`${ms.saleRows.length} settled events`} />
-        <StatTile label="Advance Booking" value={ms.newBookingTotal} icon={<CalendarDays className="h-5 w-5" />} tone="plain" delay={0.06} sub={`${ms.newBookingRows.length} new bookings`} />
-        <StatTile label="Total Expenses" value={totalExpenses} icon={<Wallet className="h-5 w-5" />} tone="red" delay={0.1} sub="From petty cash" />
+        {/* Operational figures — overall all-time value across all bookings */}
+        <StatTile label="Total Sale" value={summary.bookedSale} icon={<Receipt className="h-5 w-5" />} delay={0.02} sub={`${summary.newBookingCount} booking${summary.newBookingCount === 1 ? '' : 's'} taken`} />
+        <StatTile label="Advance Received" value={summary.received} icon={<HandCoins className="h-5 w-5" />} tone="plain" delay={0.06} sub={`${summary.eventCount} event${summary.eventCount === 1 ? '' : 's'} in total`} />
+        <StatTile label="Balance Due" value={summary.balanceDue} icon={<CalendarDays className="h-5 w-5" />} tone="red" delay={0.1} sub="Still to collect" />
         {showProfit ? (
-          <StatTile label="Net Profit" value={ms.pnl.totalNetProfit} icon={<TrendingUp className="h-5 w-5" />} tone="green" delay={0.14} sub="Incl. Naseem return" />
+          <StatTile label="Net Profit" value={ms.pnl.totalNetProfit} icon={<TrendingUp className="h-5 w-5" />} tone="green" delay={0.14} sub="Settled basis · see Income Statement" />
         ) : (
-          <StatTile label="Bookings" value={fin.settled.length + fin.newBookings.length} format="int" icon={<CalendarDays className="h-5 w-5" />} tone="plain" delay={0.14} sub="This month" />
+          <StatTile label="Total Expenses" value={totalExpenses} icon={<Wallet className="h-5 w-5" />} tone="plain" delay={0.14} sub="From petty cash" />
         )}
       </div>
 
@@ -60,13 +74,13 @@ export default async function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <FadeUp delay={0.1} className="lg:col-span-2">
           <Card className="p-5 h-full">
-            <SectionTitle sub="Settled sale vs recorded expenses">Revenue Trend</SectionTitle>
+            <SectionTitle sub="Total sale vs recorded expenses">Revenue Trend</SectionTitle>
             <RevenueTrend data={trend} />
           </Card>
         </FadeUp>
         <FadeUp delay={0.16}>
           <Card className="p-5 h-full">
-            <SectionTitle sub="This month by head">Expense Breakdown</SectionTitle>
+            <SectionTitle sub="All-time by head">Expense Breakdown</SectionTitle>
             <ExpenseDonut data={donutData} />
             <div className="mt-3"><DonutLegend data={donutData} /></div>
           </Card>
@@ -76,7 +90,7 @@ export default async function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <FadeUp delay={0.12}>
           <Card className="p-5 h-full">
-            <SectionTitle sub="Events per month">Bookings</SectionTitle>
+            <SectionTitle sub="Bookings taken per month">Bookings</SectionTitle>
             <BookingsBar data={trend.map((t) => ({ label: t.label, count: t.count }))} />
           </Card>
         </FadeUp>
@@ -99,6 +113,26 @@ export default async function Dashboard() {
             </ul>
           </Card>
         </FadeUp>
+
+        {/* Returned payments — who was refunded and how much */}
+        {returned.length > 0 && (
+          <FadeUp delay={0.22}>
+            <Card className="p-5 h-full">
+              <SectionTitle sub={`${fmtMoney(returnedTotal)} returned in total`}>Returned</SectionTitle>
+              <ul className="space-y-2">
+                {returned.map((r: any) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="truncate text-[rgb(var(--text-muted))]">{r.party_name}</div>
+                      <div className="text-xs text-[rgb(var(--text-dim))]">{r.slip_no} · {fmtDate(r.event_date)}</div>
+                    </div>
+                    <span className="tnum shrink-0 text-negative">{fmtMoney(r.refunded_amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </FadeUp>
+        )}
 
         {/* Outstanding balances + float */}
         <FadeUp delay={0.2}>

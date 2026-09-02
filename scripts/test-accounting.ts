@@ -62,10 +62,10 @@ eq(is.footer.totalNetProfit, money(700000 - 228000 + 9500), 'footer net profit')
 console.log('\nMonthly Sale assembly');
 const ms = buildMonthlySale({
   settled: [
-    { id: 1, slip_no: 'RGB-1', party_name: 'A', event_date: '2026-06-03', settlement_date: '2026-06-03', balance_amount: 350000, banquet_amount: 150000 },
-    { id: 2, slip_no: 'RGB-2', party_name: 'B', event_date: '2026-06-07', settlement_date: '2026-06-07', balance_amount: 400000, banquet_amount: 160000 },
+    { id: 1, slip_no: 'SKY-1', party_name: 'A', event_date: '2026-06-03', settlement_date: '2026-06-03', balance_amount: 350000, banquet_amount: 150000 },
+    { id: 2, slip_no: 'SKY-2', party_name: 'B', event_date: '2026-06-07', settlement_date: '2026-06-07', balance_amount: 400000, banquet_amount: 160000 },
   ],
-  newBookings: [{ id: 3, slip_no: 'RGB-3', party_name: 'C', booking_date: '2026-06-04', event_date: '2026-08-15', advance_amount: 180000 }],
+  newBookings: [{ id: 3, slip_no: 'SKY-3', party_name: 'C', booking_date: '2026-06-04', event_date: '2026-08-15', advance_amount: 180000 }],
   expenseLines: lines, disbursements: [d],
 });
 eq(ms.saleTotals.balance, 750000, 'sale balance total');

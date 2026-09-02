@@ -4,15 +4,17 @@ import { useState, useMemo, useTransition } from 'react';
 import { fmtMoney, monthLabelFull, fmtDate } from '@/lib/format';
 import { Card, Button, Badge, FadeUp, Modal, Field, Input, Toggle, EmptyState } from '@/components/ui';
 import { PeriodPicker } from '@/components/period-picker';
+import { ExpenseAttachment } from '@/components/expense-attachment';
 import { useRef } from 'react';
 import {
   saveCell,
   setMonthLock, addExpenseHead, updateExpenseHead, deleteExpenseHead, restoreExpenseHead,
 } from '@/lib/actions/petty-cash';
-import { Lock, LockOpen, Plus, Trash2, Tags, CalendarDays, Pencil, Search, X } from 'lucide-react';
+import { Lock, LockOpen, Plus, Trash2, Tags, CalendarDays, Pencil, Search, X, Paperclip } from 'lucide-react';
 
 type Head = { id: number; name: string; hasQtyNote: boolean };
-type Entry = { id: number; day: number; headId: number; headName: string; amount: number; qtyNote: string | null };
+type Entry = { id: number; day: number; headId: number; headName: string; amount: number; qtyNote: string | null;
+  attachment: string | null; attachmentKind: 'IMAGE' | 'VIDEO' | null };
 type Cat = { id: number; name: string; hasQtyNote: boolean; active: boolean; usage: number };
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -100,13 +102,13 @@ export function PettyCashClient({
           </FadeUp>
 
           {/* Day detail table */}
-          <FadeUp delay={0.08} className="lg:col-span-2">
+          <FadeUp delay={0.08} className="min-w-0 lg:col-span-2">
             <DayPanel
               date={dateOf(selectedDay)} label={`${selectedDay} ${monthLabelFull(year, month)}`}
               day={selectedDay} dayEntries={dayEntries} heads={heads} editable={editable}
               onCellChange={(headId, amount, qtyNote) => setEntries((prev) => {
                 const filtered = prev.filter((e) => !(e.day === selectedDay && e.headId === headId));
-                if (amount > 0 || qtyNote) { const h = heads.find((x) => x.id === headId)!; return [...filtered, { id: Date.now() + headId, day: selectedDay, headId, headName: h.name, amount, qtyNote: qtyNote || null }]; }
+                if (amount > 0 || qtyNote) { const h = heads.find((x) => x.id === headId)!; return [...filtered, { id: Date.now() + headId, day: selectedDay, headId, headName: h.name, amount, qtyNote: qtyNote || null, attachment: null, attachmentKind: null }]; }
                 return filtered;
               })}
             />
@@ -139,7 +141,7 @@ function DayPanel({ date, label, dayEntries, heads, editable, onCellChange }: {
       </div>
       <div className="max-h-[62vh] overflow-y-auto rounded-xl border border-[rgb(var(--border)/0.4)]">
         <table className="w-full text-sm">
-          <thead className="sticky top-0"><tr className="border-b border-[rgb(var(--border)/0.4)] bg-[rgb(var(--surface-2))] text-left text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]"><th className="px-3 py-2 font-medium">Category</th><th className="px-3 py-2 text-right font-medium">Amount (Rs.)</th></tr></thead>
+          <thead className="sticky top-0"><tr className="border-b border-[rgb(var(--border)/0.4)] bg-[rgb(var(--surface-2))] text-left text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]"><th className="px-3 py-2 font-medium">Category</th><th className="px-3 py-2 text-right font-medium">Amount (Rs.)</th><th className="w-10 px-2 py-2 text-center font-medium"><span className="sr-only">Photo or video</span><Paperclip className="mx-auto h-3.5 w-3.5" aria-hidden /></th></tr></thead>
           <tbody>
             {heads.map((h) => <CellRow key={`${date}-${h.id}`} head={h} date={date} entry={byHead[h.id]} editable={editable} onSaved={onCellChange} />)}
           </tbody>
@@ -155,11 +157,23 @@ function CellRow({ head, date, entry, editable, onSaved }: { head: Head; date: s
   const [note, setNote] = useState(entry?.qtyNote ?? '');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * The row's own copy of the evidence. `saveCell` deletes and reinserts, so
+   * the id changes every time the amount is edited; this tracks the live id so
+   * the paperclip attaches to the row that actually exists in the table.
+   */
+  const [entryId, setEntryId] = useState<number | null>(entry?.id ?? null);
+  const [media, setMedia] = useState<{ attachment: string | null; attachmentKind: 'IMAGE' | 'VIDEO' | null }>({
+    attachment: entry?.attachment ?? null,
+    attachmentKind: entry?.attachmentKind ?? null,
+  });
+
   function persist(amountStr: string, noteStr: string) {
     const n = Math.max(0, Number(amountStr) || 0);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
-      await saveCell({ date, headId: head.id, amount: n, qtyNote: noteStr || null });
+      const res = await saveCell({ date, headId: head.id, amount: n, qtyNote: noteStr || null });
+      if (res.ok) setEntryId(res.id ?? null);
       onSaved(head.id, n, noteStr || null);
     }, 500);
   }
@@ -176,6 +190,16 @@ function CellRow({ head, date, entry, editable, onSaved }: { head: Head; date: s
         {editable
           ? <input value={val} onChange={(e) => { setVal(e.target.value); persist(e.target.value, note); }} inputMode="decimal" placeholder="0" className="w-24 rounded-md bg-[rgb(var(--surface-2))] px-2 py-1 text-right text-sm tnum outline-none focus:ring-1 focus:ring-gold placeholder:text-[rgb(var(--text-dim))]" />
           : <span className="tnum text-[rgb(var(--text))]">{entry?.amount ? fmtMoney(entry.amount, false) : '—'}</span>}
+      </td>
+      <td className="w-10 px-2 py-1.5 text-center">
+        <ExpenseAttachment
+          entryId={entryId}
+          attachment={media.attachment}
+          attachmentKind={media.attachmentKind}
+          editable={editable}
+          label={head.name}
+          onChange={setMedia}
+        />
       </td>
     </tr>
   );

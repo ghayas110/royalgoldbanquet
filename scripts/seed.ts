@@ -1,8 +1,11 @@
 import { config as loadEnv } from 'dotenv';
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
+import { getConnectionConfig } from '../src/lib/db';
+import { LIVE_COOKING_SERVICE, isLiveCooking } from '../src/lib/service-presets';
 
 loadEnv({ path: '.env.local' });
+loadEnv({ path: '.env' }); // production: .env next to server.js
 
 const YEAR = 2026;
 const MONTH = 6; // June
@@ -13,6 +16,7 @@ const EXPENSE_HEADS: [string, boolean][] = [
   ['Advance to Employees', false],
   ['Petrol', false],
   ['Employee Loan', false],
+  ['Booking Refund', false],
   ['Waiters - Gents', true],
   ['Waiters - Ladies', true],
   ['Dhobi', false],
@@ -49,7 +53,13 @@ type SeedBooking = {
   guests: number; balance: number; services: Svc[]; advance: number;
 };
 
-const svcSet = (waitersG: number, waitersL: number, extras: Svc[] = []): Svc[] => [
+/**
+ * `liveCookingFor` is the guest count when the booking bought Live Cooking,
+ * or 0 when it did not — so the seeded data has a realistic mix of bookings
+ * with and without the service for the Super Admin's report to compare.
+ */
+const svcSet = (waitersG: number, waitersL: number, extras: Svc[] = [], liveCookingFor = 0): Svc[] => [
+  ...(liveCookingFor > 0 ? [{ label: LIVE_COOKING_SERVICE, qty: liveCookingFor, rate: 450 }] : []),
   { label: 'Gents Waiters', qty: waitersG, rate: 800 },
   { label: 'Ladies Waiters', qty: waitersL, rate: 800 },
   { label: 'Petrol / Transport', qty: 1, rate: 3500 },
@@ -65,22 +75,22 @@ const svcSet = (waitersG: number, waitersL: number, extras: Svc[] = []): Svc[] =
 ];
 
 const SETTLED: SeedBooking[] = [
-  { party: 'Ahmed–Zoya Wedding', bride: 'Zoya', groom: 'Ahmed', phone: '0300-2110011', hall: 1, bookingDate: '2026-04-12', eventDate: '2026-06-03', shift: 'DINNER', guests: 650, balance: 350000, services: svcSet(14, 10), advance: 150000 },
-  { party: 'Malik Family Valima', groom: 'Bilal Malik', phone: '0301-4550022', hall: 1, bookingDate: '2026-04-20', eventDate: '2026-06-07', shift: 'DINNER', guests: 720, balance: 400000, services: svcSet(16, 12, [{ label: 'Extra Lighting', qty: 1, rate: 15000 }]), advance: 200000 },
+  { party: 'Ahmed–Zoya Wedding', bride: 'Zoya', groom: 'Ahmed', phone: '0300-2110011', hall: 1, bookingDate: '2026-04-12', eventDate: '2026-06-03', shift: 'DINNER', guests: 650, balance: 350000, services: svcSet(14, 10, [], 650), advance: 150000 },
+  { party: 'Malik Family Valima', groom: 'Bilal Malik', phone: '0301-4550022', hall: 1, bookingDate: '2026-04-20', eventDate: '2026-06-07', shift: 'DINNER', guests: 720, balance: 400000, services: svcSet(16, 12, [{ label: 'Extra Lighting', qty: 1, rate: 15000 }], 720), advance: 200000 },
   { party: 'Hassan Mehndi', bride: 'Areeba', groom: 'Hassan', phone: '0333-9001133', hall: 2, bookingDate: '2026-05-01', eventDate: '2026-06-10', shift: 'LUNCH', guests: 300, balance: 180000, services: svcSet(8, 8), advance: 80000 },
   { party: 'Shaikh Nikkah', bride: 'Mahnoor', groom: 'Usman', phone: '0345-7788990', hall: 2, bookingDate: '2026-05-05', eventDate: '2026-06-14', shift: 'DINNER', guests: 260, balance: 160000, services: svcSet(7, 7), advance: 60000 },
-  { party: 'Qureshi Barat', bride: 'Fatima', groom: 'Talha', phone: '0321-6543210', hall: 1, bookingDate: '2026-05-09', eventDate: '2026-06-18', shift: 'DINNER', guests: 800, balance: 450000, services: svcSet(18, 14, [{ label: 'Fireworks', qty: 1, rate: 25000 }]), advance: 250000 },
-  { party: 'Ansari Reception', bride: 'Hira', groom: 'Zain', phone: '0302-1122334', hall: 1, bookingDate: '2026-05-12', eventDate: '2026-06-21', shift: 'DINNER', guests: 600, balance: 330000, services: svcSet(13, 10), advance: 130000 },
+  { party: 'Qureshi Barat', bride: 'Fatima', groom: 'Talha', phone: '0321-6543210', hall: 1, bookingDate: '2026-05-09', eventDate: '2026-06-18', shift: 'DINNER', guests: 800, balance: 450000, services: svcSet(18, 14, [{ label: 'Fireworks', qty: 1, rate: 25000 }], 800), advance: 250000 },
+  { party: 'Ansari Reception', bride: 'Hira', groom: 'Zain', phone: '0302-1122334', hall: 1, bookingDate: '2026-05-12', eventDate: '2026-06-21', shift: 'DINNER', guests: 600, balance: 330000, services: svcSet(13, 10, [], 600), advance: 130000 },
   { party: 'Farooqi Aqiqah', phone: '0308-5566778', hall: 2, bookingDate: '2026-05-18', eventDate: '2026-06-24', shift: 'LUNCH', guests: 220, balance: 140000, services: svcSet(6, 5), advance: 70000 },
   { party: 'Rehman Engagement', bride: 'Sana', groom: 'Daniyal', phone: '0311-9988776', hall: 2, bookingDate: '2026-05-22', eventDate: '2026-06-27', shift: 'DINNER', guests: 280, balance: 170000, services: svcSet(8, 7), advance: 90000 },
-  { party: 'Iqbal Grand Valima', groom: 'Hamza Iqbal', phone: '0300-3344556', hall: 1, bookingDate: '2026-05-25', eventDate: '2026-06-29', shift: 'DINNER', guests: 750, balance: 420000, services: svcSet(17, 13), advance: 220000 },
+  { party: 'Iqbal Grand Valima', groom: 'Hamza Iqbal', phone: '0300-3344556', hall: 1, bookingDate: '2026-05-25', eventDate: '2026-06-29', shift: 'DINNER', guests: 750, balance: 420000, services: svcSet(17, 13, [], 750), advance: 220000 },
 ];
 
 // ── New bookings made in June for FUTURE dates (Section B) ──
 const NEW_BOOKINGS: SeedBooking[] = [
-  { party: 'Khan Wedding', bride: 'Laiba', groom: 'Arsalan', phone: '0300-7001234', hall: 1, bookingDate: '2026-06-04', eventDate: '2026-08-15', shift: 'DINNER', guests: 700, balance: 400000, services: svcSet(16, 12), advance: 180000 },
+  { party: 'Khan Wedding', bride: 'Laiba', groom: 'Arsalan', phone: '0300-7001234', hall: 1, bookingDate: '2026-06-04', eventDate: '2026-08-15', shift: 'DINNER', guests: 700, balance: 400000, services: svcSet(16, 12, [], 700), advance: 180000 },
   { party: 'Siddiqui Barat', bride: 'Noor', groom: 'Faizan', phone: '0333-8009876', hall: 2, bookingDate: '2026-06-08', eventDate: '2026-07-20', shift: 'LUNCH', guests: 320, balance: 190000, services: svcSet(9, 8), advance: 90000 },
-  { party: 'Baig Mehndi', bride: 'Alina', groom: 'Shayan', phone: '0345-2003344', hall: 1, bookingDate: '2026-06-15', eventDate: '2026-09-05', shift: 'DINNER', guests: 620, balance: 340000, services: svcSet(13, 11), advance: 160000 },
+  { party: 'Baig Mehndi', bride: 'Alina', groom: 'Shayan', phone: '0345-2003344', hall: 1, bookingDate: '2026-06-15', eventDate: '2026-09-05', shift: 'DINNER', guests: 620, balance: 340000, services: svcSet(13, 11, [], 620), advance: 160000 },
   { party: 'Chaudhry Valima', groom: 'Umair Chaudhry', phone: '0321-1005566', hall: 2, bookingDate: '2026-06-19', eventDate: '2026-08-02', shift: 'DINNER', guests: 300, balance: 175000, services: svcSet(8, 7), advance: 85000 },
   { party: 'Sheikh Reception', bride: 'Emaan', groom: 'Rohan', phone: '0302-6007788', hall: 1, bookingDate: '2026-06-26', eventDate: '2026-10-11', shift: 'DINNER', guests: 680, balance: 380000, services: svcSet(15, 12), advance: 170000 },
 ];
@@ -90,20 +100,35 @@ function pad(n: number) { return String(n).padStart(2, '0'); }
 
 async function main() {
   const conn = await mysql.createConnection({
-    host: process.env.DB_HOST ?? '127.0.0.1',
-    port: Number(process.env.DB_PORT ?? 8889),
-    user: process.env.DB_USER ?? 'root',
-    password: process.env.DB_PASSWORD ?? 'root',
-    database: process.env.DB_NAME ?? 'royal_gold_banquet',
+    ...getConnectionConfig(),
     multipleStatements: true,
   });
 
   console.log('→ Clearing existing data...');
+  // Everything the seed writes, plus everything that references it — otherwise
+  // a second `npm run db:seed` either hits a duplicate key (attendance has a
+  // UNIQUE on employee+date) or leaves rows pointing at ids that no longer
+  // exist. Order is irrelevant with foreign_key_checks off, so this is simply
+  // grouped by area.
   await conn.query(`SET foreign_key_checks = 0;
+    -- Staff
+    TRUNCATE attendance; TRUNCATE salary_payments; TRUNCATE loan_repayments;
+    TRUNCATE employee_loans; TRUNCATE employee_advances; TRUNCATE employees;
+    -- Money
     TRUNCATE audit_log; TRUNCATE income_adjustments; TRUNCATE monthly_locks;
-    TRUNCATE manager_disbursements; TRUNCATE petty_cash_entries; TRUNCATE expense_heads;
-    TRUNCATE payments; TRUNCATE booking_service_items; TRUNCATE bookings;
-    TRUNCATE parties; TRUNCATE halls; TRUNCATE leads; TRUNCATE settings; TRUNCATE users;
+    TRUNCATE manager_disbursements; TRUNCATE petty_cash_closings;
+    TRUNCATE petty_cash_entries; TRUNCATE expense_heads;
+    -- Bookings
+    TRUNCATE payments; TRUNCATE booking_service_items; TRUNCATE booking_rules;
+    TRUNCATE booking_date_changes; TRUNCATE reviews; TRUNCATE bookings;
+    TRUNCATE parties; TRUNCATE halls;
+    -- Stock (movements reference bookings, so they cannot outlive them)
+    TRUNCATE stock_movements;
+    -- Notifications & sessions reference users
+    TRUNCATE notification_reads; TRUNCATE notifications;
+    TRUNCATE push_subscriptions; TRUNCATE user_sessions;
+    -- Config & people
+    TRUNCATE rules; TRUNCATE leads; TRUNCATE settings; TRUNCATE users;
     SET foreign_key_checks = 1;`);
 
   // ── Users ──
@@ -112,26 +137,34 @@ async function main() {
   await conn.query(
     `INSERT INTO users (name, email, password_hash, role, permissions, is_active) VALUES ?`,
     [[
-      ['Usama (Owner)', 'usama@royalgold.pk', hash('royal123'), 'OWNER', null, 1],
-      ['Naseem (Manager)', 'naseem@royalgold.pk', hash('royal123'), 'MANAGER', null, 1],
-      ['Front Desk (Viewer)', 'viewer@royalgold.pk', hash('royal123'), 'VIEWER', null, 1],
+      // Rank above the Owner — the only accounts that see the Live Cooking figures.
+      ['Areeb', 'areeb@skylightballroom.com', hash('Skylight123'), 'SUPER_ADMIN', null, 1],
+      ['Super Admin', 'admin@skylightballroom.pk', hash('skylight123'), 'SUPER_ADMIN', null, 1],
+      ['Usama (Owner)', 'usama@skylightballroom.pk', hash('skylight123'), 'OWNER', null, 1],
+      ['Naseem (Manager)', 'naseem@skylightballroom.pk', hash('skylight123'), 'MANAGER', null, 1],
+      ['Front Desk (Viewer)', 'viewer@skylightballroom.pk', hash('skylight123'), 'VIEWER', null, 1],
+      // The catering arm's own login — no ballroom access at all.
+      ['Catering Manager', 'catering@skylightballroom.com', hash('Catering123'), 'CATERING', null, 1],
     ]],
   );
-  const [[owner]] = await conn.query<any[]>(`SELECT id FROM users WHERE email='usama@royalgold.pk'`) as any;
-  const [[manager]] = await conn.query<any[]>(`SELECT id FROM users WHERE email='naseem@royalgold.pk'`) as any;
-  const ownerId = owner.id, managerId = manager.id;
+  const [[superAdmin]] = await conn.query<any[]>(`SELECT id FROM users WHERE email='admin@skylightballroom.pk'`) as any;
+  const [[owner]] = await conn.query<any[]>(`SELECT id FROM users WHERE email='usama@skylightballroom.pk'`) as any;
+  const [[manager]] = await conn.query<any[]>(`SELECT id FROM users WHERE email='naseem@skylightballroom.pk'`) as any;
+  const ownerId = owner.id, managerId = manager.id, superAdminId = superAdmin.id;
 
   // ── Halls ──
   console.log('→ Seeding halls...');
   await conn.query(`INSERT INTO halls (name, capacity, base_charge, description, is_active) VALUES ?`, [[
-    ['Grand Hall', 800, 400000, 'Our flagship hall — soaring ceilings, crystal chandeliers and a grand stage for up to 800 guests.', 1],
-    ['Crystal Hall', 400, 200000, 'An intimate, elegant setting for up to 400 guests — perfect for nikkah, mehndi and refined receptions.', 1],
+    ['Skylight Ballroom', 400, 400000, 'An elegant air-conditioned ballroom for up to 400 guests, with a grand stage, crystal chandeliers and full venue setup.', 1],
+    // Retired, not deleted: older bookings still point at it. Inactive halls
+    // drop out of the public site and the booking form but keep their history.
+    ['Crystal Hall', 400, 200000, 'An intimate, elegant setting for up to 400 guests.', 0],
   ]]);
 
   // ── Settings ──
   await conn.query(`INSERT INTO settings (\`key\`, \`value\`) VALUES ?`, [[
     ['sale_attribution', 'EVENT_MONTH'],
-    ['banquet_name', 'Royal Gold Banquet'],
+    ['banquet_name', 'Skylight Ballroom & Catering Service'],
     ['banquet_city', 'Karachi'],
   ]]);
 
@@ -151,7 +184,7 @@ async function main() {
     const paid = settled ? total : b.advance;
     const payStatus = settled ? 'SETTLED' : (b.advance > 0 ? 'PARTIAL' : 'PENDING');
     const status = settled ? 'COMPLETED' : 'CONFIRMED';
-    const slip = `RGB-${YEAR}-${pad(slipSeq)}`;
+    const slip = `SKY-${YEAR}-${pad(slipSeq)}`;
 
     const [pr] = await conn.query<any>(
       `INSERT INTO parties (party_name, bride_name, groom_name, phone) VALUES (?,?,?,?)`,
@@ -171,8 +204,8 @@ async function main() {
 
     for (const s of b.services) {
       await conn.query(
-        `INSERT INTO booking_service_items (booking_id, label, qty, rate, subtotal) VALUES (?,?,?,?,?)`,
-        [bookingId, s.label, s.qty, s.rate, s.qty * s.rate],
+        `INSERT INTO booking_service_items (booking_id, label, service_kind, qty, rate, subtotal) VALUES (?,?,?,?,?,?)`,
+        [bookingId, s.label, isLiveCooking(s.label) ? 'LIVE_COOKING' : 'BANQUET', s.qty, s.rate, s.qty * s.rate],
       );
     }
 
@@ -341,11 +374,37 @@ async function main() {
   // bulk insert
   await conn.query(`INSERT INTO attendance (employee_id, att_date, status, note, marked_by) VALUES ?`, [attRows]);
 
-  console.log(`\n✓ Seed complete.`);
-  console.log(`   Users: Usama (owner), Naseem (manager), Viewer — password: royal123`);
-  console.log(`   Bookings: ${SETTLED.length} settled + ${NEW_BOOKINGS.length} new (June ${YEAR})`);
-  console.log(`   Petty cash entries: ${pcCount} | Disbursements: 2`);
-  console.log(`   Rules: 7 | Employees: ${emps.length} | Attendance rows: ${attRows.length}`);
+
+  // ── Catering menu ──
+  // The catering tables are NOT truncated above: catering is a separate
+  // business whose data must survive a ballroom reseed. The menu is only
+  // seeded when it is still empty.
+  const [[menuCount]] = await conn.query<any[]>('SELECT COUNT(*) AS n FROM catering_menu_items') as any;
+  if (Number(menuCount.n) === 0) {
+    console.log('→ Seeding catering menu...');
+    await conn.query(
+      `INSERT INTO catering_menu_items (name, category, unit, default_rate, sort_order) VALUES ?`,
+      [[
+        ['QORMA', 'CHICKEN', 'KG', 800, 10],
+        ['BIRYANI MASALA', 'BEEF B', 'KG', 1000, 20],
+        ['BEEF DALEEM', 'BEEF B', 'KG', 800, 30],
+        ['BIHARI TIKKA', 'BAR B Q', 'KG', 450, 40],
+        ['RESHMI KABAB', 'BAR B Q', 'KG', 1800, 50],
+        ['CHICKEN BOTI', 'BAR B Q', 'KG', 1200, 60],
+        ['WONTON', 'DEEP FRY LIVE', 'PCS', 30, 70],
+        ['SPRING ROLL', 'DEEP FRY LIVE', 'PCS', 25, 80],
+        ['RABRI KHEER', 'SWEET', 'KG', 1100, 90],
+        ['ICE CREAM', 'SWEET', 'KG', 500, 100],
+        ['GULAB JAMUN', 'SWEET', 'KG', 900, 110],
+        ['TAFTAAN', 'BREAD', 'PCS', 500, 120],
+        ['MILKY ROTI', 'BREAD', 'PCS', 300, 130],
+        ['RAITA', 'SALAD', 'KG', 500, 140],
+        ['SALAD BAR', 'SALAD', 'PCS', 4000, 150],
+        ['MINERAL WATER', 'DRINKS', 'PCS', 60, 160],
+      ]],
+    );
+  }
+
 
   await conn.end();
 }

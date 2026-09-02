@@ -1,5 +1,5 @@
 import { requirePermission, can } from '@/lib/session';
-import { getDefaultPeriod, getMonthlyFinancials } from '@/lib/data';
+import { getDefaultPeriod, getMonthlyFinancials, getStockProfit } from '@/lib/data';
 import { buildIncomeStatement } from '@/lib/accounting';
 import { fmtMoney, fmtDate, monthLabelFull, resolvePeriod } from '@/lib/format';
 import { Card, FadeUp } from '@/components/ui';
@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Printer } from 'lucide-react';
 import { BrandLockup } from '@/components/brand';
 
-export const metadata = { title: 'Income Statement — Royal Gold Banquet' };
+export const metadata = { title: 'Income Statement — Skylight Ballroom & Catering' };
 
 export default async function IncomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('income.view');
@@ -17,9 +17,16 @@ export default async function IncomePage({ searchParams }: { searchParams: Promi
   const { year, month } = resolvePeriod(sp, await getDefaultPeriod());
 
   const fin = await getMonthlyFinancials(year, month);
+  const stock = await getStockProfit(fin.from, fin.to);
   const balanceAmount = fin.settled.reduce((s, b) => s + b.balance_amount, 0);
   const banquetAmount = fin.settled.reduce((s, b) => s + b.banquet_amount, 0);
-  const advanceBookingSale = fin.newBookings.reduce((s, b) => s + b.advance_amount, 0);
+  // Excludes bookings already counted as settled sale in this period: their
+  // value is in balance + banquet above, and adding the advance too counted
+  // the same money twice. Mirrors the rule in `buildMonthlySale`.
+  const settledIds = new Set(fin.settled.map((b) => b.id));
+  const advanceBookingSale = fin.newBookings
+    .filter((b) => !settledIds.has(b.id))
+    .reduce((s, b) => s + b.advance_amount, 0);
   const alreadyPaidAgainstPC = fin.disbursements.reduce((s, d) => s + d.expenses_recorded, 0);
 
   const is = buildIncomeStatement({
@@ -62,11 +69,52 @@ export default async function IncomePage({ searchParams }: { searchParams: Promi
             </div>
           </div>
 
+          {/* Stock sold through bookings: what it was billed at, less what it
+              cost. Shown only when the month's events actually drew on stock,
+              so a venue that resells nothing sees no empty panel. */}
+          {showProfit && stock.rows.length > 0 && (
+            <div className="border-b border-[rgb(var(--border)/0.5)] p-5">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-display text-lg text-gold">Stock Profit</div>
+                <div className="text-xs text-[rgb(var(--text-dim))]">Items issued from stock against this month&apos;s events</div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                <HeaderStat label="Billed to customers" value={stock.revenue} />
+                <HeaderStat label="Stock cost" value={stock.cost} />
+                <HeaderStat label="Profit on stock" value={stock.profit} gold />
+              </div>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-[rgb(var(--border)/0.4)] text-left text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]">
+                    <tr>
+                      <th className="py-2 pr-3 font-medium">Item</th>
+                      <th className="py-2 pr-3 text-right font-medium">Qty</th>
+                      <th className="py-2 pr-3 text-right font-medium">Billed</th>
+                      <th className="py-2 pr-3 text-right font-medium">Cost</th>
+                      <th className="py-2 text-right font-medium">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stock.rows.map((r) => (
+                      <tr key={r.name} className="border-b border-[rgb(var(--border)/0.2)] last:border-0">
+                        <td className="py-2 pr-3 text-[rgb(var(--text))]">{r.name}</td>
+                        <td className="py-2 pr-3 text-right tnum text-[rgb(var(--text-muted))]">{r.qty}</td>
+                        <td className="py-2 pr-3 text-right tnum text-[rgb(var(--text-muted))]">{fmtMoney(r.revenue, false)}</td>
+                        <td className="py-2 pr-3 text-right tnum text-[rgb(var(--text-muted))]">{fmtMoney(r.cost, false)}</td>
+                        <td className={`py-2 text-right tnum ${r.profit >= 0 ? 'text-positive' : 'text-negative'}`}>{fmtMoney(r.profit, false)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Expense body */}
           <div className="p-5">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-[rgb(var(--text-dim))]">Expenses by head</div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="print-report-table w-full min-w-[700px] text-sm">
                 <tbody>
                   {activeLines.map((l) => (
                     <tr key={l.head_id} className="border-b border-[rgb(var(--border)/0.2)] last:border-0">
@@ -109,11 +157,15 @@ export default async function IncomePage({ searchParams }: { searchParams: Promi
             </div>
 
             {/* Owner signature line */}
-            <div className="mt-10 flex justify-end">
-              <div className="text-center">
+            <div className="print-signature-block no-print mt-10 flex justify-end">
+              <div className="print-signature-line text-center">
                 <div className="w-56 border-t border-[rgb(var(--border))]" />
                 <div className="mt-1 text-xs text-[rgb(var(--text-dim))]">Owner signature</div>
               </div>
+            </div>
+            {/* Real print signature block */}
+            <div className="print-only print-signature-block" style={{ marginTop: '40px', padding: '0 40px', justifyContent: 'flex-end' }}>
+              <div className="print-signature-line">Owner signature</div>
             </div>
           </div>
         </Card>
@@ -124,9 +176,9 @@ export default async function IncomePage({ searchParams }: { searchParams: Promi
 
 function HeaderStat({ label, value, gold }: { label: string; value: number; gold?: boolean }) {
   return (
-    <div className={`rounded-xl border p-3 ${gold ? 'border-[rgb(var(--gold)/0.4)] bg-[rgb(var(--gold)/0.1)]' : 'border-[rgb(var(--border)/0.5)]'}`}>
-      <div className="text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]">{label}</div>
-      <div className={`mt-1 tnum font-display text-lg ${gold ? 'text-gold' : 'text-[rgb(var(--text))]'}`}>{fmtMoney(value)}</div>
+    <div className={`print-report-kpi rounded-xl border p-3 ${gold ? 'print-report-kpi-gold border-[rgb(var(--gold)/0.4)] bg-[rgb(var(--gold)/0.1)]' : 'border-[rgb(var(--border)/0.5)]'}`}>
+      <div className="print-report-kpi-label text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]">{label}</div>
+      <div className={`print-report-kpi-value mt-1 tnum font-display text-lg ${gold ? 'text-gold' : 'text-[rgb(var(--text))]'}`}>{fmtMoney(value)}</div>
     </div>
   );
 }

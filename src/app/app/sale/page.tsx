@@ -6,7 +6,7 @@ import { Card, FadeUp } from '@/components/ui';
 import { PeriodPicker, PrintButton } from '@/components/period-picker';
 import { BrandLockup } from '@/components/brand';
 
-export const metadata = { title: 'Monthly Sale — Royal Gold Banquet' };
+export const metadata = { title: 'Monthly Sale — Skylight Ballroom & Catering' };
 
 export default async function SalePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('sale.view');
@@ -47,7 +47,7 @@ export default async function SalePage({ searchParams }: { searchParams: Promise
         <Card className="overflow-hidden">
           <div className="border-b border-[rgb(var(--border)/0.5)] px-5 py-3 font-display text-lg text-gold">Monthly Sale</div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="print-report-table w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-[rgb(var(--border)/0.5)] text-left text-xs uppercase tracking-wider text-[rgb(var(--text-dim))]">
                   <th className="px-4 py-2.5 font-medium">S.No</th>
@@ -88,7 +88,7 @@ export default async function SalePage({ searchParams }: { searchParams: Promise
         <Card className="overflow-hidden">
           <div className="border-b border-[rgb(var(--border)/0.5)] px-5 py-3 font-display text-lg text-gold">New Booking</div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="print-report-table w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-[rgb(var(--border)/0.5)] text-left text-xs uppercase tracking-wider text-[rgb(var(--text-dim))]">
                   <th className="px-4 py-2.5 font-medium">S.No</th>

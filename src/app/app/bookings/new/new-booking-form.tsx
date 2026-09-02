@@ -3,38 +3,42 @@
 import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, SectionTitle, Button, Field, Input, Select, FadeUp } from '@/components/ui';
-import { fmtMoney } from '@/lib/format';
+import { fmtMoney, fmtDateWithDay } from '@/lib/format';
 import { createBooking } from '@/lib/actions/bookings';
+import { SERVICE_PRESETS } from '@/lib/service-presets';
+import { DateInput } from '@/components/date-input';
 import { Plus, Trash2, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 
 type Item = { label: string; qty: string; rate: string };
 type Hall = { id: number; name: string; capacity: number; baseCharge: number };
-const PRESET_SERVICES = ['Gents Waiters', 'Ladies Waiters', 'Petrol', 'Coffee Machine', 'Water Cooler', 'Generator', 'Valet', 'Ice', 'Cold Drinks', 'Tea Hall', 'Decor'];
 
 export function NewBookingForm({ halls }: { halls: Hall[] }) {
   const router = useRouter();
   const [partyName, setPartyName] = useState('');
-  const [brideName, setBride] = useState('');
-  const [groomName, setGroom] = useState('');
+  const [phone2, setPhone2] = useState('');
+  const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [hallId, setHallId] = useState(halls[0]?.id ?? 0);
+  // No hall pre-selected — staff must choose one deliberately.
+  const [hallId, setHallId] = useState(0);
   const [bookingDate, setBookingDate] = useState(new Date().toISOString().slice(0, 10));
   const [eventDate, setEventDate] = useState('');
   const [shift, setShift] = useState<'LUNCH' | 'DINNER'>('DINNER');
   const [guestCount, setGuests] = useState('');
-  const [balanceAmount, setBalance] = useState(String(halls[0]?.baseCharge || ''));
-  const [wantsServices, setWantsServices] = useState(true);
+  // Starts at 0 and is typed in each time — hall rates vary per booking, so
+  // auto-filling the hall's base charge was quietly setting the wrong amount.
+  const [balanceAmount, setBalance] = useState('');
+  const [wantsServices, setWantsServices] = useState(false);
   const [items, setItems] = useState<Item[]>([{ label: 'Gents Waiters', qty: '10', rate: '800' }]);
   const [advance, setAdvance] = useState('');
   const [advanceMethod, setMethod] = useState('CASH');
+  const [notes, setNotes] = useState('');
+  const [isEnquiry, setIsEnquiry] = useState(false);
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
 
+  // The hall no longer sets the amount — the balance is entered by hand.
   function onHallChange(id: number) {
     setHallId(id);
-    const h = halls.find((x) => x.id === id);
-    // Auto-fill the hall payment from the hall's base charge (still editable).
-    if (h && h.baseCharge > 0) setBalance(String(h.baseCharge));
   }
 
   const banquet = useMemo(() => (wantsServices ? items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.rate) || 0), 0) : 0), [items, wantsServices]);
@@ -51,11 +55,12 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
     setError('');
     start(async () => {
       const res = await createBooking({
-        partyName, brideName: brideName || null, groomName: groomName || null, phone: phone || null,
+        partyName, phone: phone || null, phone2: phone2 || null, address: address || null,
         hallId, bookingDate, eventDate, shift, guestCount: Number(guestCount) || 0,
         balanceAmount: balance,
         serviceItems: wantsServices ? items.filter((it) => it.label).map((it) => ({ label: it.label, qty: Number(it.qty) || 0, rate: Number(it.rate) || 0 })) : [],
-        advanceAmount: adv, advanceMethod,
+        advanceAmount: isEnquiry ? 0 : adv, advanceMethod,
+        notes: notes || null, isEnquiry,
       });
       if (res.ok) router.push(`/app/bookings/${res.id}?created=1`);
       else setError(res.error);
@@ -66,10 +71,24 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
 
   return (
     <div className="space-y-6">
-      <FadeUp><SectionTitle sub="Two-amount model: hall charge + itemized services">New Booking</SectionTitle></FadeUp>
+      <FadeUp><SectionTitle sub={isEnquiry ? 'Tentative quotation — no slot held, no advance taken' : 'Two-amount model: hall charge + itemized services'}>{isEnquiry ? 'New Enquiry' : 'New Booking'}</SectionTitle></FadeUp>
+
+      {/* Mode: tentative enquiry vs confirmed booking */}
+      <FadeUp delay={0.01}>
+        <div className="inline-flex rounded-xl border border-[rgb(var(--border)/0.6)] bg-[rgb(var(--surface-2)/0.5)] p-1">
+          <button type="button" onClick={() => setIsEnquiry(false)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${!isEnquiry ? 'bg-gold text-black' : 'text-[rgb(var(--text-muted))] hover:text-[rgb(var(--text))]'}`}>
+            Confirmed booking
+          </button>
+          <button type="button" onClick={() => setIsEnquiry(true)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${isEnquiry ? 'bg-gold text-black' : 'text-[rgb(var(--text-muted))] hover:text-[rgb(var(--text))]'}`}>
+            Enquiry / Quotation
+          </button>
+        </div>
+      </FadeUp>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {/* Party details */}
           <FadeUp delay={0.03}>
             <Card className="p-5">
@@ -77,8 +96,8 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Party name"><Input value={partyName} onChange={(e) => setPartyName(e.target.value)} placeholder="e.g. Ahmed–Zoya Wedding" /></Field>
                 <Field label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0300-1234567" /></Field>
-                <Field label="Bride name"><Input value={brideName} onChange={(e) => setBride(e.target.value)} /></Field>
-                <Field label="Groom name"><Input value={groomName} onChange={(e) => setGroom(e.target.value)} /></Field>
+                <Field label="Secondary phone"><Input value={phone2} onChange={(e) => setPhone2(e.target.value)} placeholder="0321-7654321" /></Field>
+                <Field label="Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House / street / area" /></Field>
               </div>
             </Card>
           </FadeUp>
@@ -88,10 +107,15 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
             <Card className="p-5">
               <h3 className="mb-4 font-display text-lg text-gold">Date &amp; venue</h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Hall" hint="Hall payment auto-fills below"><Select value={hallId} onChange={(e) => onHallChange(Number(e.target.value))}>{halls.map((h) => <option key={h.id} value={h.id}>{h.name} (cap. {h.capacity})</option>)}</Select></Field>
+                <Field label="Hall">
+                  <Select value={hallId} onChange={(e) => onHallChange(Number(e.target.value))}>
+                    <option value={0}>Select hall</option>
+                    {halls.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </Select>
+                </Field>
                 <Field label="Shift"><Select value={shift} onChange={(e) => setShift(e.target.value as 'LUNCH' | 'DINNER')}><option value="LUNCH">Lunch</option><option value="DINNER">Dinner</option></Select></Field>
-                <Field label="Booking date"><Input type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} /></Field>
-                <Field label="Event date"><Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></Field>
+                <Field label="Booking date" hint="dd/mm/yyyy"><DateInput value={bookingDate} onChange={setBookingDate} /></Field>
+                <Field label="Event date" hint="dd/mm/yyyy"><DateInput value={eventDate} onChange={setEventDate} /></Field>
                 <Field label="Guest count"><Input inputMode="numeric" value={guestCount} onChange={(e) => setGuests(e.target.value)} placeholder="500" /></Field>
               </div>
             </Card>
@@ -101,7 +125,7 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
           <FadeUp delay={0.09}>
             <Card className="p-5">
               <h3 className="mb-1 font-display text-lg text-gold">Hall Payment</h3>
-              <p className="mb-4 text-xs text-[rgb(var(--text-dim))]">The hall/venue charge — the banquet&apos;s core credit. Auto-filled from the hall, editable.</p>
+              <p className="mb-4 text-xs text-[rgb(var(--text-dim))]">The hall/venue charge — the banquet&apos;s core credit. Enter the agreed amount for this booking.</p>
               <Field label="Hall payment (Balance Amount)">
                 <Input inputMode="decimal" value={balanceAmount} onChange={(e) => setBalance(e.target.value)} placeholder="400000" />
               </Field>
@@ -124,15 +148,19 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
                     </div>
                     <div className="space-y-2">
                       {items.map((it, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input list="svc-presets" className="flex-1 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-3 py-2 text-sm outline-none focus:border-[rgb(var(--gold)/0.5)]" value={it.label} onChange={(e) => setItem(i, { label: e.target.value })} placeholder="Service" />
-                          <input className="w-16 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-2 py-2 text-right text-sm tnum outline-none" inputMode="decimal" value={it.qty} onChange={(e) => setItem(i, { qty: e.target.value })} placeholder="qty" />
-                          <input className="w-24 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-2 py-2 text-right text-sm tnum outline-none" inputMode="decimal" value={it.rate} onChange={(e) => setItem(i, { rate: e.target.value })} placeholder="rate" />
-                          <span className="w-24 text-right text-sm tnum text-[rgb(var(--text-dim))]">{fmtMoney((Number(it.qty) || 0) * (Number(it.rate) || 0), false)}</span>
-                          <button onClick={() => removeItem(i)} className="rounded-lg p-1.5 text-[rgb(var(--text-dim))] hover:text-negative"><Trash2 className="h-4 w-4" /></button>
+                        // Wraps to two lines on a phone: the service name takes
+                        // the full width, then qty / rate / subtotal / delete sit
+                        // on the second line. Unwrapped, this row ran ~485px wide
+                        // and pushed the delete button off a 375px screen.
+                        <div key={i} className="flex flex-wrap items-center gap-2">
+                          <input list="svc-presets" className="w-full min-w-0 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-3 py-2 text-sm outline-none focus:border-[rgb(var(--gold)/0.5)] sm:w-auto sm:flex-1" value={it.label} onChange={(e) => setItem(i, { label: e.target.value })} placeholder="Service" />
+                          <input className="w-14 shrink-0 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-2 py-2 text-right text-sm tnum outline-none sm:w-16" inputMode="decimal" value={it.qty} onChange={(e) => setItem(i, { qty: e.target.value })} placeholder="qty" />
+                          <input className="w-20 shrink-0 rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-2 py-2 text-right text-sm tnum outline-none sm:w-24" inputMode="decimal" value={it.rate} onChange={(e) => setItem(i, { rate: e.target.value })} placeholder="rate" />
+                          <span className="ml-auto min-w-0 flex-1 text-right text-sm tnum text-[rgb(var(--text-dim))] sm:ml-0 sm:w-24 sm:flex-none">{fmtMoney((Number(it.qty) || 0) * (Number(it.rate) || 0), false)}</span>
+                          <button onClick={() => removeItem(i)} aria-label="Remove service" className="shrink-0 rounded-lg p-1.5 text-[rgb(var(--text-dim))] hover:text-negative"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       ))}
-                      <datalist id="svc-presets">{PRESET_SERVICES.map((s) => <option key={s} value={s} />)}</datalist>
+                      <datalist id="svc-presets">{SERVICE_PRESETS.map((s) => <option key={s} value={s} />)}</datalist>
                     </div>
                     <div className="mt-3 flex justify-between border-t border-[rgb(var(--border)/0.4)] pt-2 text-sm">
                       <span className="text-[rgb(var(--text-muted))]">Banquet Amount</span>
@@ -142,9 +170,23 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
                 )}
               </div>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Field label="Advance paid now"><Input inputMode="decimal" value={advance} onChange={(e) => setAdvance(e.target.value)} placeholder="150000" /></Field>
-                <Field label="Method"><Select value={advanceMethod} onChange={(e) => setMethod(e.target.value)}><option>CASH</option><option>BANK</option><option>CHEQUE</option><option>ONLINE</option></Select></Field>
+              {isEnquiry ? (
+                <div className="mt-5 rounded-xl border border-[rgb(var(--gold)/0.3)] bg-[rgb(var(--gold)/0.06)] px-4 py-3 text-sm text-[rgb(var(--text-muted))]">
+                  No advance is collected for an enquiry — it&apos;s a quotation only. You can convert it to a confirmed booking (and take the advance) later.
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <Field label="Advance paid now"><Input inputMode="decimal" value={advance} onChange={(e) => setAdvance(e.target.value)} placeholder="150000" /></Field>
+                  <Field label="Method"><Select value={advanceMethod} onChange={(e) => setMethod(e.target.value)}><option>CASH</option><option>BANK</option><option>CHEQUE</option><option>ONLINE</option></Select></Field>
+                </div>
+              )}
+
+              <div className="mt-5">
+                <Field label="Notes" hint="Prints on the slip — e.g. AC open 3 hrs, special decor, menu remarks">
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+                    className="w-full rounded-lg bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.6)] px-3 py-2 text-sm outline-none focus:border-[rgb(var(--gold)/0.5)]"
+                    placeholder="Any special requirements or remarks…" />
+                </Field>
               </div>
             </Card>
           </FadeUp>
@@ -156,15 +198,19 @@ export function NewBookingForm({ halls }: { halls: Hall[] }) {
             <Card glass className="sticky top-6 p-5">
               <h3 className="mb-4 font-display text-lg text-gold">Summary</h3>
               <div className="space-y-2 text-sm">
-                <Row label="Balance Amount" value={balance} />
-                <Row label="Banquet Amount" value={banquet} />
-                <div className="border-t border-[rgb(var(--border)/0.5)] pt-2"><Row label="Total" value={total} strong /></div>
-                <Row label="Advance" value={adv} muted />
-                <div className="border-t border-[rgb(var(--gold)/0.4)] pt-2"><Row label="Balance Due" value={due} big /></div>
+                {bookingDate && <div className="flex items-center justify-between text-xs text-[rgb(var(--text-dim))]"><span>Booking date</span><span className="font-medium text-[rgb(var(--text-muted))]">{fmtDateWithDay(bookingDate)}</span></div>}
+                {eventDate && <div className="flex items-center justify-between text-xs text-[rgb(var(--text-dim))]"><span>Event date</span><span className="font-medium text-gold">{fmtDateWithDay(eventDate)}</span></div>}
+                <div className="border-t border-[rgb(var(--border)/0.5)] pt-2 space-y-2">
+                  <Row label="Balance Amount" value={balance} />
+                  <Row label="Banquet Amount" value={banquet} />
+                </div>
+                <div className="border-t border-[rgb(var(--border)/0.5)] pt-2"><Row label={isEnquiry ? 'Estimated Total' : 'Total'} value={total} strong /></div>
+                {!isEnquiry && <Row label="Advance" value={adv} muted />}
+                {!isEnquiry && <div className="border-t border-[rgb(var(--gold)/0.4)] pt-2"><Row label="Balance Due" value={due} big /></div>}
               </div>
               {error && <div className="mt-4 rounded-lg border border-negative/30 bg-negative/10 px-3 py-2 text-sm text-negative">{error}</div>}
-              <Button className="mt-5 w-full" disabled={pending || !inputOk} onClick={submit}>{pending ? 'Creating…' : <><Check className="h-4 w-4" /> Create booking</>}</Button>
-              <p className="mt-2 text-center text-xs text-[rgb(var(--text-dim))]">Slip # is generated automatically</p>
+              <Button className="mt-5 w-full" disabled={pending || !inputOk} onClick={submit}>{pending ? 'Saving…' : <><Check className="h-4 w-4" /> {isEnquiry ? 'Save enquiry' : 'Create booking'}</>}</Button>
+              <p className="mt-2 text-center text-xs text-[rgb(var(--text-dim))]">{isEnquiry ? 'Inquiry slip # (INQ-…) is generated automatically' : 'Slip # is generated automatically'}</p>
             </Card>
           </FadeUp>
         </div>

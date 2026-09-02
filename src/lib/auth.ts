@@ -1,7 +1,8 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { queryOne } from './db';
+import { randomUUID } from 'crypto';
+import { queryOne, execute } from './db';
 import { resolvePermissions } from './permissions';
 import type { UserRow, Permission, Role } from './types';
 
@@ -43,6 +44,32 @@ export const authOptions: NextAuthOptions = {
         token.uid = Number(u.id);
         token.role = u.role;
         token.permissions = u.permissions;
+        // Mint a per-device id at sign-in. Sessions are JWT (stateless), so this
+        // is what lets a specific device be listed and signed out remotely.
+        token.sid = randomUUID();
+        token.chk = Date.now();
+        try {
+          await execute(
+            `INSERT INTO user_sessions (user_id, sid) VALUES (?,?)`,
+            [Number(u.id), token.sid],
+          );
+        } catch { /* never block sign-in on device bookkeeping */ }
+      }
+
+      // Enforce remote sign-out, but at most once a minute so we aren't
+      // hitting the database on every single request.
+      const sid = token.sid as string | undefined;
+      const lastCheck = Number(token.chk ?? 0);
+      if (sid && Date.now() - lastCheck > 60_000) {
+        token.chk = Date.now();
+        try {
+          const row = await queryOne<{ revoked_at: string | null }>(
+            `SELECT revoked_at FROM user_sessions WHERE sid = ?`, [sid],
+          );
+          // Row deleted or revoked -> this device has been signed out.
+          if (!row || row.revoked_at) return null as unknown as typeof token;
+          await execute(`UPDATE user_sessions SET last_seen_at = NOW() WHERE sid = ?`, [sid]);
+        } catch { /* a DB blip must not log everyone out */ }
       }
       return token;
     },
@@ -51,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.uid as number;
         session.user.role = token.role as Role;
         session.user.permissions = (token.permissions as Permission[]) ?? [];
+        session.user.sid = token.sid as string | undefined;
       }
       return session;
     },

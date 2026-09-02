@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Card, Field, Input, Button, inputClass } from '@/components/ui';
 import { cn } from '@/lib/format';
 import { Loader2, LogIn, Eye, EyeOff, Home } from 'lucide-react';
+import { InstallPrompt } from '@/components/install-prompt';
 
 export function LoginForm() {
   const router = useRouter();
@@ -26,7 +27,10 @@ export function LoginForm() {
       setError('Invalid email or password.');
       return;
     }
-    router.push('/app');
+    // Catering staff have no ballroom permissions at all, so landing them on
+    // /app would only bounce them straight back out again.
+    const session = await fetch('/api/auth/session').then((r) => r.json()).catch(() => null);
+    router.push(session?.user?.role === 'CATERING' ? '/catering' : '/app');
     router.refresh();
   }
 
@@ -34,7 +38,7 @@ export function LoginForm() {
     <Card glass className="p-6 md:p-8">
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Email">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="you@royalgold.pk" required />
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="you@skylightballroom.pk" required />
         </Field>
         <Field label="Password" error={error}>
           <div className="relative">
@@ -69,6 +73,8 @@ export function LoginForm() {
       >
         <Home className="h-4 w-4" /> Go to home screen
       </Link>
+
+      <InstallPrompt />
     </Card>
   );
 }

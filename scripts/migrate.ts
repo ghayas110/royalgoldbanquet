@@ -3,21 +3,23 @@ import mysql from 'mysql2/promise';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getConnectionConfig } from '../src/lib/db';
 
 loadEnv({ path: '.env.local' });
+loadEnv({ path: '.env' }); // production: .env next to server.js
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, '..', 'migrations');
 
 async function main() {
-  const dbName = process.env.DB_NAME ?? 'royal_gold_banquet';
+  const { host, port, user, password, database: dbName } = getConnectionConfig();
 
   // Connect without a database first, to create it.
   const admin = await mysql.createConnection({
-    host: process.env.DB_HOST ?? '127.0.0.1',
-    port: Number(process.env.DB_PORT ?? 8889),
-    user: process.env.DB_USER ?? 'root',
-    password: process.env.DB_PASSWORD ?? 'root',
+    host,
+    port,
+    user,
+    password,
     multipleStatements: true,
   });
 
@@ -30,7 +32,28 @@ async function main() {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
+  /**
+   * 001_init.sql DROPs every table before recreating it. That is correct for a
+   * fresh install and catastrophic on a live one — running `db:migrate` to pick
+   * up a new migration would silently destroy the client's bookings.
+   *
+   * So it is skipped whenever the database already has tables. The numbered
+   * upgrades after it are all idempotent and safe to re-run. Pass --reset (or
+   * use `db:reset`) to deliberately wipe and rebuild.
+   */
+  const [existing] = await admin.query<any[]>(
+    `SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?`,
+    [dbName],
+  );
+  const isPopulated = Number(existing[0]?.n ?? 0) > 0;
+  const force = process.argv.includes('--reset');
+
   for (const file of files) {
+    const destructive = /^001_/.test(file);
+    if (destructive && isPopulated && !force) {
+      console.log(`→ Skipping ${file} (database already exists — pass --reset to rebuild it)`);
+      continue;
+    }
     const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8');
     process.stdout.write(`→ Running ${file} ... `);
     await admin.query(sql);

@@ -4,16 +4,45 @@ import mysql, { type Pool, type PoolConnection, type RowDataPacket, type ResultS
  * Singleton mysql2 connection pool. Raw SQL only — no ORM.
  * Uses globalThis to survive Next.js hot-reload in dev.
  */
-const globalForDb = globalThis as unknown as { __rgbPool?: Pool };
+const globalForDb = globalThis as unknown as { __skylightPool?: Pool };
+
+/**
+ * Resolve connection settings from either a single DATABASE_URL
+ * (e.g. mysql://user:pass@host:3306/dbname — password may be %-encoded)
+ * or the discrete DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME vars.
+ * DATABASE_URL wins when set. Used by the app pool and the db scripts.
+ */
+export function getConnectionConfig(): {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+} {
+  const url = process.env.DATABASE_URL;
+  if (url) {
+    const u = new URL(url);
+    return {
+      host: decodeURIComponent(u.hostname) || '127.0.0.1',
+      port: Number(u.port || 3306),
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: decodeURIComponent(u.pathname.replace(/^\//, '')),
+    };
+  }
+  return {
+    host: process.env.DB_HOST ?? '127.0.0.1',
+    port: Number(process.env.DB_PORT ?? 8889),
+    user: process.env.DB_USER ?? 'root',
+    password: process.env.DB_PASSWORD ?? 'root',
+    database: process.env.DB_NAME ?? 'skylight_ballroom',
+  };
+}
 
 export function getPool(): Pool {
-  if (!globalForDb.__rgbPool) {
-    globalForDb.__rgbPool = mysql.createPool({
-      host: process.env.DB_HOST ?? '127.0.0.1',
-      port: Number(process.env.DB_PORT ?? 8889),
-      user: process.env.DB_USER ?? 'root',
-      password: process.env.DB_PASSWORD ?? 'root',
-      database: process.env.DB_NAME ?? 'royal_gold_banquet',
+  if (!globalForDb.__skylightPool) {
+    globalForDb.__skylightPool = mysql.createPool({
+      ...getConnectionConfig(),
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
@@ -22,7 +51,7 @@ export function getPool(): Pool {
       timezone: 'Z',
     });
   }
-  return globalForDb.__rgbPool;
+  return globalForDb.__skylightPool;
 }
 
 /**

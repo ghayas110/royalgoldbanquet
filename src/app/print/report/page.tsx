@@ -1,11 +1,12 @@
 import { requirePermission, hasPermission } from '@/lib/session';
-import { getDefaultPeriod, getMonthlyFinancials, getFloatLedger, getPettyCashMatrix } from '@/lib/data';
+import { getDefaultPeriod, getMonthlyFinancials, getFloatLedger, getPettyCashMatrix,
+  getSalarySheet, getStaffLoanLedger, getBrand, getStockProfit } from '@/lib/data';
 import { buildMonthlySale, buildIncomeStatement } from '@/lib/accounting';
 import { resolvePeriod, monthLabelFull, fmtDate } from '@/lib/format';
 import { PrintShell } from '@/components/print/print-shell';
 import { ReportDoc } from '@/components/print/print-docs';
 
-export const metadata = { title: 'Monthly Report — Royal Gold Banquet' };
+export const metadata = { title: 'Monthly Report — Skylight Ballroom & Catering' };
 
 export default async function ReportPrint({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('reports.generate');
@@ -20,7 +21,11 @@ export default async function ReportPrint({ searchParams }: { searchParams: Prom
     expenseLines: fin.expenseLines, disbursements: fin.disbursements,
     alreadyPaidAgainstPC: fin.disbursements.reduce((s, d) => s + d.expenses_recorded, 0), dateFrom: fin.from, dateTo: fin.to,
   });
-  const [ledger, matrix] = await Promise.all([getFloatLedger(), getPettyCashMatrix(year, month)]);
+  const [ledger, matrix, salaryRows, staffLoan, brand, stockProfit] = await Promise.all([
+    getFloatLedger(), getPettyCashMatrix(year, month),
+    getSalarySheet(year, month), getStaffLoanLedger(year, month, 8), getBrand(),
+    getStockProfit(fin.from, fin.to),
+  ]);
   const key = `${year}-${String(month).padStart(2, '0')}`;
   const recon = ledger.filter((r) => String(r.date_disbursed).slice(0, 7) === key);
 
@@ -30,8 +35,9 @@ export default async function ReportPrint({ searchParams }: { searchParams: Prom
 
   return (
     <PrintShell backHref={`/app/reports?y=${year}&m=${month}`}>
-      <ReportDoc r={{
+      <ReportDoc brand={brand} r={{
         label: monthLabelFull(year, month), generated: fmtDate(new Date()), showProfit,
+        salary: { label: monthLabelFull(year, month), rows: salaryRows, loan: staffLoan },
         kpis: { totalSale: ms.pnl.totalSale, totalExpenses: is.totalExpenses, netProfit: ms.pnl.totalNetProfit, bookings: fin.settled.length + fin.newBookings.length },
         petty: { days: matrix.days, heads: matrix.heads.map((h) => ({ id: h.id, name: h.name })), cells: pettyCells },
         income: {
@@ -42,6 +48,9 @@ export default async function ReportPrint({ searchParams }: { searchParams: Prom
           totalExpenses: is.totalExpenses, showProfit,
           footer: { sale: is.footer.sale, expenses: is.footer.expenses, total: is.footer.total, naseemReturn: is.footer.naseemReturn, naseemReturn2: is.footer.naseemReturn2, totalNetProfit: is.footer.totalNetProfit },
         },
+        // Only when the profit figures are visible to this user: the margin on
+        // resold stock is a profit number like any other.
+        stockProfit: showProfit ? stockProfit : undefined,
         saleRows: ms.saleRows, saleTotals: ms.saleTotals,
         newBookingRows: ms.newBookingRows, newBookingTotal: ms.newBookingTotal,
         pnl: { balanceAmount: ms.pnl.balanceAmount, banquetAmount: ms.pnl.banquetAmount, advanceBookingAmount: ms.pnl.advanceBookingAmount, totalSale: ms.pnl.totalSale, expenses: ms.pnl.expenses, total: ms.pnl.total, naseemReturn: ms.pnl.naseemReturn, totalNetProfit: ms.pnl.totalNetProfit },

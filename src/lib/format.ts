@@ -7,6 +7,29 @@ export function cn(...inputs: ClassValue[]) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** Format phone numbers with +92 country code (e.g. 03001234567 -> +92 300 1234567). */
+export function fmtPhone(input: string | null | undefined): string {
+  if (!input) return '—';
+  const cleaned = input.trim();
+  if (!cleaned || cleaned === '—') return '—';
+  if (cleaned.startsWith('+')) return cleaned;
+
+  const digits = cleaned.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('03')) {
+    return `+92 ${digits.slice(1, 4)} ${digits.slice(4)}`;
+  }
+  if (digits.length === 10 && digits.startsWith('3')) {
+    return `+92 ${digits.slice(0, 3)} ${digits.slice(3)}`;
+  }
+  if (digits.length === 12 && digits.startsWith('923')) {
+    return `+92 ${digits.slice(2, 5)} ${digits.slice(5)}`;
+  }
+  if (cleaned.startsWith('3')) return `+92 ${cleaned}`;
+  if (cleaned.startsWith('03')) return `+92 ${cleaned.slice(1)}`;
+
+  return cleaned;
+}
+
 /** Format a money amount as PKR: Rs. 1,20,000 -> we use standard grouping. */
 export function fmtMoney(n: number | null | undefined, withSymbol = true): string {
   const v = Number(n ?? 0);
@@ -31,6 +54,16 @@ export function fmtMoney2(n: number | null | undefined, withSymbol = true): stri
   return `${sign}${withSymbol ? 'Rs. ' : ''}${formatted}`;
 }
 
+const WEEKDAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Return full weekday name e.g. "Saturday" for YYYY-MM-DD or Date. Returns '' if invalid. */
+export function getWeekday(input: string | Date | null | undefined): string {
+  if (!input) return '';
+  const d = typeof input === 'string' ? parseDate(input) : input;
+  if (!d || isNaN(d.getTime())) return '';
+  return WEEKDAYS_FULL[d.getDay()];
+}
+
 /** DD-MMM-YY e.g. 21-Mar-26 */
 export function fmtDate(input: string | Date | null | undefined): string {
   if (!input) return '—';
@@ -40,6 +73,15 @@ export function fmtDate(input: string | Date | null | undefined): string {
   const mmm = MONTHS[d.getMonth()];
   const yy = String(d.getFullYear()).slice(-2);
   return `${dd}-${mmm}-${yy}`;
+}
+
+/** DD-MMM-YY (Day) e.g. 21-Mar-26 (Saturday) */
+export function fmtDateWithDay(input: string | Date | null | undefined): string {
+  if (!input) return '—';
+  const base = fmtDate(input);
+  if (base === '—') return '—';
+  const day = getWeekday(input);
+  return day ? `${base} (${day})` : base;
 }
 
 /** Long form e.g. 21 March 2026 */

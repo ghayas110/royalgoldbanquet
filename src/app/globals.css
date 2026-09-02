@@ -39,6 +39,23 @@ body {
   min-height: 100vh;
 }
 
+/* Nothing may cause the page itself to scroll sideways — wide tables scroll
+   inside their own container instead. `clip` (not `hidden`) so it doesn't
+   create a scroll container and break the sticky headers. */
+html { overflow-x: clip; }
+body { overflow-x: clip; max-width: 100%; }
+
+/* iOS: the viewport is `viewport-fit=cover` so the installed app can paint
+   edge to edge — keep interactive chrome clear of the notch/home indicator. */
+.safe-b { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+.safe-t { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+
+/* Installed-app polish: no text selection / tap highlight on chrome, and
+   never let a stray element force a horizontal scrollbar. */
+@media (display-mode: standalone) {
+  body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+}
+
 /* Tabular numerals — mandatory on all money figures */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
@@ -68,10 +85,11 @@ body {
 }
 
 .surface-glass {
-  background-color: rgb(var(--surface) / 0.7);
+  background-color: rgb(var(--surface));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgb(var(--gold) / 0.22);
+  color: rgb(var(--text));
 }
 
 /* Hairline divider tables */
@@ -107,6 +125,8 @@ body {
 @media print {
   @page { size: A4; margin: 14mm 12mm; }
   @page landscape { size: A4 landscape; }
+  /* See print.css — the dark colour-scheme canvas prints as a black border. */
+  :root, html, body { color-scheme: light !important; }
   html, body { background: #fff !important; color: #111 !important; font-size: 11pt !important; }
   .no-print { display: none !important; }
   .print-only { display: block !important; }

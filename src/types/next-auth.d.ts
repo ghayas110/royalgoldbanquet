@@ -10,6 +10,8 @@ declare module 'next-auth' {
       email?: string | null;
       role: Role;
       permissions: Permission[];
+      /** Per-device session id, used by the signed-in devices list. */
+      sid?: string;
     };
   }
 }
@@ -19,5 +21,9 @@ declare module 'next-auth/jwt' {
     uid: number;
     role: Role;
     permissions: Permission[];
+    /** Per-device session id minted at sign-in. */
+    sid?: string;
+    /** Last time this token's session was checked against the DB (ms). */
+    chk?: number;
   }
 }

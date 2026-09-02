@@ -9,7 +9,21 @@ import { markAttendance, markAllPresent, createEmployee } from '@/lib/actions/at
 import { summarizeAttendance } from '@/lib/attendance-calc';
 import { UserPlus, CheckCheck, Info, ArrowUpRight } from 'lucide-react';
 
-type Emp = { id: number; name: string; designation: string; salary: number };
+type Emp = {
+  id: number; name: string; designation: string; salary: number;
+  /** Set when this staff member also has a portal login. */
+  userRole: string | null;
+};
+
+/** Marks staff who are also portal users, so the two lists read as one team. */
+function PortalTag({ role }: { role: string | null }) {
+  if (!role) return null;
+  return (
+    <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-[rgb(var(--gold)/0.14)] px-1.5 py-[1px] align-middle text-[9px] font-semibold uppercase tracking-wider text-gold">
+      {role}
+    </span>
+  );
+}
 type Status = 'PRESENT' | 'ABSENT' | 'LATE' | 'LEAVE' | '';
 
 const STATUS_META: Record<Exclude<Status, ''>, { short: string; cls: string; label: string; dot: string }> = {
@@ -114,7 +128,7 @@ export function AttendanceClient({ year, month, days, employees, cells: initial,
         </FadeUp>
 
         {/* Day marking panel */}
-        <FadeUp delay={0.08} className="lg:col-span-2">
+        <FadeUp delay={0.08} className="min-w-0 lg:col-span-2">
           <Card className="p-5">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display text-lg text-gold">{selectedDay} {monthLabelFull(year, month)}</h3>
@@ -131,7 +145,7 @@ export function AttendanceClient({ year, month, days, employees, cells: initial,
                   <div key={e.id} className="flex items-center justify-between gap-2 rounded-xl border border-[rgb(var(--border)/0.35)] px-3 py-2">
                     <Link href={`/app/employees/${e.id}`} className="group min-w-0">
                       <div className="flex items-center gap-1 truncate text-sm text-[rgb(var(--text))] group-hover:text-gold">{e.name} <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100" /></div>
-                      <div className="text-[11px] text-[rgb(var(--text-dim))]">{e.designation}</div>
+                      <div className="text-[11px] text-[rgb(var(--text-dim))]">{e.designation}<PortalTag role={e.userRole} /></div>
                     </Link>
                     <div className="flex gap-1">
                       {(Object.keys(STATUS_META) as Array<Exclude<Status, ''>>).map((st) => (
@@ -154,12 +168,12 @@ export function AttendanceClient({ year, month, days, employees, cells: initial,
         <Card className="p-5">
           <SectionTitle sub="Effective absent days apply the 3-lates rule">Month summary</SectionTitle>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[700px] text-sm">
               <thead><tr className="border-b border-[rgb(var(--border)/0.5)] text-left text-xs uppercase tracking-wider text-[rgb(var(--text-dim))]"><th className="px-3 py-2 font-medium">Employee</th><th className="px-3 py-2 text-center">P</th><th className="px-3 py-2 text-center">A</th><th className="px-3 py-2 text-center">L</th><th className="px-3 py-2 text-center">Lv</th><th className="px-3 py-2 text-center">Eff. Abs</th><th className="px-3 py-2"></th></tr></thead>
               <tbody>
                 {employees.map((e) => { const sm = summaries[e.id]; return (
                   <tr key={e.id} className="border-b border-[rgb(var(--border)/0.2)] last:border-0 hover:bg-[rgb(var(--surface-2)/0.4)]">
-                    <td className="px-3 py-2.5"><div className="text-[rgb(var(--text))]">{e.name}</div><div className="text-xs text-[rgb(var(--text-dim))]">{e.designation}</div></td>
+                    <td className="px-3 py-2.5"><div className="text-[rgb(var(--text))]">{e.name}</div><div className="text-xs text-[rgb(var(--text-dim))]">{e.designation}<PortalTag role={e.userRole} /></div></td>
                     <td className="px-3 py-2.5 text-center tnum text-positive">{sm.present}</td>
                     <td className="px-3 py-2.5 text-center tnum text-negative">{sm.absent}</td>
                     <td className="px-3 py-2.5 text-center tnum text-warn">{sm.late}</td>

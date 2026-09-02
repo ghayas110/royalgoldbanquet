@@ -20,14 +20,19 @@ export function Card({ className, glass, ...props }: React.HTMLAttributes<HTMLDi
 }
 
 // ── Section header ─────────────────────────────────────
-export function SectionTitle({ children, sub, right }: { children: React.ReactNode; sub?: string; right?: React.ReactNode }) {
+export function SectionTitle({ children, sub, right, eyebrow }: { children: React.ReactNode; sub?: string; right?: React.ReactNode; eyebrow?: string }) {
+  // flex-wrap + a basis on the text column: with two action buttons the
+  // shrink-0 block below used to crush the heading to one word per line.
   return (
-    <div className="flex items-end justify-between gap-4 mb-4">
-      <div>
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0 flex-1 basis-[18rem]">
+        {eyebrow && <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold/80">{eyebrow}</div>}
         <h2 className="font-display text-xl md:text-2xl text-[rgb(var(--text))]">{children}</h2>
         {sub && <p className="text-sm text-[rgb(var(--text-dim))] mt-0.5">{sub}</p>}
       </div>
-      {right}
+      {/* shrink-0 + nowrap: without it the action button gets squeezed on a
+          phone and its label wraps onto two lines ("New / user"). */}
+      {right && <div className="shrink-0 [&_button]:whitespace-nowrap [&_a]:whitespace-nowrap">{right}</div>}
     </div>
   );
 }
@@ -97,6 +102,12 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
   },
 );
 
+export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  function Textarea({ className, ...props }, ref) {
+    return <textarea ref={ref} className={cn(inputClass, 'min-h-[96px] resize-y leading-relaxed', className)} {...props} />;
+  },
+);
+
 export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
   function Select({ className, children, ...props }, ref) {
     return <select ref={ref} className={cn(inputClass, 'cursor-pointer', className)} {...props}>{children}</select>;
@@ -113,7 +124,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className={cn('surface-glass relative z-10 my-8 w-full rounded-2xl p-6 shadow-lift', wide ? 'max-w-3xl' : 'max-w-lg')}
+            className={cn('surface-glass relative z-10 my-8 w-full rounded-2xl p-6 shadow-lift text-[rgb(var(--text))]', wide ? 'max-w-3xl' : 'max-w-lg')}
           >
             <div className="mb-5 flex items-center justify-between">
               <h3 className="font-display text-xl text-[rgb(var(--text))]">{title}</h3>
@@ -154,6 +165,26 @@ export function EmptyState({ icon, title, sub }: { icon?: React.ReactNode; title
       {icon && <div className="text-[rgb(var(--text-dim))]">{icon}</div>}
       <div className="font-display text-lg text-[rgb(var(--text))]">{title}</div>
       {sub && <div className="text-sm text-[rgb(var(--text-dim))]">{sub}</div>}
+    </div>
+  );
+}
+
+/**
+ * Horizontal-scroll container for wide tables on small screens.
+ *
+ * Keeps the scroll INSIDE the card so the page body never scrolls sideways,
+ * uses momentum scrolling on iOS, and exposes the region to keyboard/AT users
+ * (tabIndex + role) since a scrollable box must be reachable without a mouse.
+ */
+export function TableScroll({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label="Scrollable table"
+      className={cn('w-full max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] focus:outline-none focus-visible:ring-1 focus-visible:ring-[rgb(var(--gold)/0.5)]', className)}
+    >
+      {children}
     </div>
   );
 }

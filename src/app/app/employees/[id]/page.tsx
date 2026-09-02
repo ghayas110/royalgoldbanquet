@@ -5,7 +5,7 @@ import { resolvePeriod } from '@/lib/format';
 import { summarizeAttendance, salaryDeduction } from '@/lib/attendance-calc';
 import { EmployeeLedgerClient } from './ledger-client';
 
-export const metadata = { title: 'Employee — Royal Gold Banquet' };
+export const metadata = { title: 'Employee — Skylight Ballroom & Catering' };
 
 export default async function EmployeeLedger({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('attendance.view');

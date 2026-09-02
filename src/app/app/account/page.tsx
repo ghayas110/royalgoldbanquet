@@ -1,16 +1,26 @@
-import { requireUser } from '@/lib/session';
+import { requireUser, hasPermission } from '@/lib/session';
 import { query } from '@/lib/db';
 import { resolvePermissions, PERMISSION_META } from '@/lib/permissions';
 import { fmtDate } from '@/lib/format';
 import { Card, SectionTitle, Badge, FadeUp } from '@/components/ui';
 import { Mail, Shield, Clock, User as UserIcon } from 'lucide-react';
+import { getMyDevices, getAllDevices } from '@/lib/actions/devices';
+import { DevicesCard } from '@/components/devices-card';
+import { PushCard } from '@/components/push-card';
 
-export const metadata = { title: 'My Account — Royal Gold Banquet' };
+export const metadata = { title: 'My Account — Skylight Ballroom & Catering' };
 
 export default async function AccountPage() {
   const user = await requireUser();
   const perms = resolvePermissions(user.role, null); // display role defaults; overrides not needed here
   const effective = user.permissions.length ? user.permissions : perms;
+
+  // Owners/admins also get the portal-wide list — who else is signed in.
+  const canSeeAll = hasPermission(user, 'users.manage');
+  const [devices, allDevices] = await Promise.all([
+    getMyDevices(),
+    canSeeAll ? getAllDevices() : Promise.resolve([]),
+  ]);
 
   const activity = await query<any>(
     `SELECT action, entity, entity_id, created_at FROM audit_log WHERE user_id = ? ORDER BY id DESC LIMIT 12`,
@@ -37,7 +47,7 @@ export default async function AccountPage() {
               <h1 className="font-display text-2xl text-[rgb(var(--text))]">{user.name}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-[rgb(var(--text-dim))]">
                 <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {user.email}</span>
-                <Badge tone={user.role === 'OWNER' ? 'gold' : user.role === 'MANAGER' ? 'green' : 'muted'}><Shield className="mr-1 h-3 w-3" /> {user.role}</Badge>
+                <Badge tone={user.role === 'OWNER' || user.role === 'SUPER_ADMIN' ? 'gold' : user.role === 'MANAGER' ? 'green' : 'muted'}><Shield className="mr-1 h-3 w-3" /> {user.role}</Badge>
               </div>
             </div>
           </div>
@@ -79,6 +89,9 @@ export default async function AccountPage() {
           </Card>
         </FadeUp>
       </div>
+      <PushCard />
+      <DevicesCard devices={devices} allDevices={allDevices} canSeeAll={canSeeAll} currentUserId={user.id} />
+
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import { requirePermission } from '@/lib/session';
 import { query } from '@/lib/db';
 import { fmtDate } from '@/lib/format';
-import { Card, SectionTitle, FadeUp, EmptyState } from '@/components/ui';
+import { Card, SectionTitle, FadeUp, EmptyState, TableScroll } from '@/components/ui';
 import { LeadRow } from './lead-row';
 import { Sparkles } from 'lucide-react';
 
-export const metadata = { title: 'Leads — Royal Gold Banquet' };
+export const metadata = { title: 'Leads — Skylight Ballroom & Catering' };
 
 export default async function LeadsPage() {
   await requirePermission('leads.view');
@@ -18,7 +18,8 @@ export default async function LeadsPage() {
       ) : (
         <FadeUp delay={0.05}>
           <Card className="overflow-hidden">
-            <table className="w-full text-sm">
+            <TableScroll>
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[rgb(var(--border)/0.5)] text-left text-xs uppercase tracking-wider text-[rgb(var(--text-dim))]">
                   <th className="px-4 py-3 font-medium">Name</th>
@@ -35,6 +36,7 @@ export default async function LeadsPage() {
                 ))}
               </tbody>
             </table>
+            </TableScroll>
           </Card>
         </FadeUp>
       )}

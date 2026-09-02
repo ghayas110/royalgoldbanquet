@@ -7,3 +7,11 @@ out
 .DS_Store
 next-env.d.ts
 .vercel
+cpanel-build
+cpanel-build.zip
+
+# Client-supplied originals: kept out of the build, they are huge
+media-source
+
+# Uploaded expense evidence: runtime data, not source
+uploads

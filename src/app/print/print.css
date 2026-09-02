@@ -32,6 +32,16 @@
 .rgb-btn-ghost { background: transparent; color: #d8d2c4; border-color: #55524a; }
 .rgb-btn-ghost:hover { border-color: #C9A227; color: #fff; }
 
+/* ── Preview zoom (screen only) ── */
+.rgb-zoom { display: flex; align-items: center; gap: 8px; }
+.rgb-zoom-val { min-width: 46px; text-align: center; font-size: 13px; font-weight: 600; color: #d8d2c4; }
+.rgb-zoom-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  transform: scale(var(--rgb-zoom, 1));
+  transform-origin: top center;
+  transition: transform .12s ease-out;
+}
+
 /* ── The A4 sheet ── */
 .rgb-sheet {
   width: 210mm;
@@ -52,7 +62,16 @@
 .tnum2 { font-variant-numeric: tabular-nums; }
 
 /* ── Letterhead / footer bands (dark, gold) ── */
+.rgb-band-fill {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0; display: block; pointer-events: none;
+}
+/* Everything except the fill sits above it. */
+.rgb-band > *:not(.rgb-band-fill),
+.rgb-band-footer > *:not(.rgb-band-fill) { position: relative; z-index: 1; }
+
 .rgb-band {
+  position: relative;
   background: #0B0B0D;
   color: #F0D67B;
   text-align: center;
@@ -61,6 +80,7 @@
   print-color-adjust: exact;
 }
 .rgb-band-footer {
+  position: relative;
   background: #0B0B0D; color: #E4C766;
   padding: 10px 16px;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
@@ -69,6 +89,19 @@
 }
 
 /* ── Logo (recreated wordmark) ── */
+/* Letterhead lockup: monogram left, business name right, centred as a unit.
+   Mirrors <BrandLockup> on screen so paper and app agree. */
+.rgb-lockup { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.rgb-lockup-mark { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+.rgb-lockup-text { text-align: left; }
+.rgb-lockup-sub {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #E4C766;
+  margin-top: 3px;
+}
+
 .rgb-logo-word { font-family: var(--font-display), Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
 .rgb-logo-gold { color: #F0D67B; }
 .rgb-logo-sub { font-family: var(--font-display), Georgia, serif; font-style: italic; letter-spacing: 0.18em; color: #E4C766; }
@@ -77,15 +110,28 @@
 /* ── Meta row ── */
 .rgb-meta { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
   padding: 8px 0 8px; border-bottom: 2px solid #C9A227; margin-bottom: 10px; }
+/* The contact block was removed from this row, so the remaining title block
+   must push itself right instead of sitting stranded on the left. */
+.rgb-meta > :only-child { margin-left: auto; }
 .rgb-doc-title { font-size: 17px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #1a1a1a; }
 .rgb-slipno { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; margin-top: 2px; color: #4a4436; }
 .rgb-contact { font-size: 9.5px; color: #6b6455; line-height: 1.7; }
 
-.rgb-badge { display: inline-block; padding: 2px 11px; border: 2px solid; font-weight: 700;
-  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 3px; }
+/* An explicit line-height and nowrap are load-bearing, not cosmetic: the PDF
+   is rasterised by html2canvas, which lays letter-spaced text out slightly
+   wider than the browser does. With the box height left to the inherited 1.45
+   line-height the words spilled over their own border, so "PARTIALLY PAID"
+   printed with the frame cutting through it. Fixed metrics plus a little more
+   padding give the text room in both renderers. */
+.rgb-badge { display: inline-block; padding: 3px 12px 6px; border: 2px solid; font-weight: 700;
+  font-size: 9px; line-height: 1; letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: 3px; white-space: nowrap; vertical-align: middle; }
 .rgb-badge-paid { border-color: #2E7D32; color: #2E7D32; }
 .rgb-badge-partial { border-color: #E65100; color: #E65100; }
 .rgb-badge-due { border-color: #C62828; color: #C62828; }
+.rgb-badge-enquiry { border-color: #8a6d15; color: #8a6d15; }
+.rgb-badge-cancelled { border-color: #D32F2F; color: #D32F2F; background: #FFEBEE; }
+.rgb-badge-returned { border-color: #5E35B1; color: #5E35B1; background: #EDE7F6; }
 
 /* ── Section label ── */
 .rgb-sec { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
@@ -123,11 +169,50 @@
   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rgb-banner-due { background: #FFF3E0; border: 2px solid #E65100; color: #C0410E; }
 .rgb-banner-paid { background: #E8F5E9; border: 2px solid #2E7D32; color: #2E7D32; }
+.rgb-banner-enquiry { background: #FBF6E6; border: 2px solid #C9A227; color: #8a6d15; }
+.rgb-banner-returned { background: #EDE7F6; border: 2px solid #5E35B1; color: #4527A0; }
+.rgb-banner-cancelled { background: #FFEBEE; border: 2px solid #D32F2F; color: #C62828; }
 
 /* Terms */
 .rgb-terms { margin-top: 9px; border: 1px solid #E2D9C0; background: #FDFBF4; border-radius: 4px;
   padding: 7px 12px; font-size: 8.5px; color: #6b6455; line-height: 1.6;
   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Inline terms — printed ON the invoice so the slip is a single page.
+   Two columns keep a seven-rule list to a few lines; `break-inside: avoid`
+   stops a rule being split across the column gap mid-sentence. */
+.rgb-inline-terms {
+  margin-top: 9px; border: 1px solid #E2D9C0; background: #FDFBF4; border-radius: 4px;
+  padding: 8px 12px 7px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.rgb-inline-terms-head {
+  font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #6b6455; margin-bottom: 5px;
+}
+.rgb-inline-terms-head .rgb-urdu { text-transform: none; letter-spacing: 0; font-size: 11px; }
+.rgb-inline-terms-list {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px;
+  font-size: 8px; line-height: 1.5; color: #6b6455;
+}
+.rgb-inline-terms-list > li::before { content: '•'; position: absolute; left: 0; top: 0; }
+.rgb-inline-terms-list li { break-inside: avoid; page-break-inside: avoid; margin-bottom: 1.5px;
+  padding-left: 10px; position: relative; }
+.rgb-inline-terms-list li[dir='rtl'] { direction: rtl; text-align: right; padding-left: 0; padding-right: 10px; }
+.rgb-inline-terms-list li[dir='rtl']::before { left: auto; right: 0; }
+.rgb-inline-terms-list li.rgb-urdu { font-size: 10px; line-height: 1.9; }
+.rgb-inline-notes {
+  margin-top: 6px; padding-top: 5px; border-top: 1px solid #EDE6D3;
+  font-size: 8px; line-height: 1.55; color: #6b6455;
+}
+.rgb-inline-notes.rgb-urdu { font-size: 10px; line-height: 1.9; text-align: right; direction: rtl; }
+
+/* Denser tiers, applied by rule count so a long terms list still fits A4. */
+.rgb-inline-terms--dense .rgb-inline-terms-list { grid-template-columns: repeat(3, 1fr); column-gap: 14px; font-size: 7.2px; line-height: 1.4; }
+.rgb-inline-terms--x .rgb-inline-terms-list { grid-template-columns: repeat(3, 1fr); column-gap: 12px; font-size: 6.6px; line-height: 1.32; }
+.rgb-inline-terms--dense .rgb-inline-terms-list li.rgb-urdu,
+.rgb-inline-terms--x .rgb-inline-terms-list li.rgb-urdu { font-size: 9px; line-height: 1.7; }
 
 /* Signatures */
 .rgb-signs { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-top: 14px; }
@@ -145,28 +230,457 @@
 .rgb-hr { border: none; border-top: 1px solid #EDE6D3; margin: 12px 0; }
 .rgb-note { font-size: 8px; color: #a49c88; text-align: center; margin-top: 8px; }
 
+
+/* Complementary items — bulleted, two columns to stay compact.
+   GRID, not CSS `columns`: Safari drops multicol when printing and stacked the
+   whole list into one straight column on paper. */
+.rgb-comp {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; row-gap: 0;
+  font-size: 10px; color: #322d22;
+}
+/* Bullets drawn as text rather than list markers: a `display: grid` list
+   blockifies its items, and the native marker then rasterised as a tiny raised
+   dot in the generated PDF. A `::before` bullet sits on the text baseline. */
+.rgb-comp li {
+  /* The left padding is what the absolute bullet sits in. It must live in the
+     same shorthand as the vertical padding — a separate `padding-left` earlier
+     in the file was silently reset by this `padding` shorthand, and the bullet
+     landed on top of the first letter. */
+  padding: 1.5px 0 1.5px 11px;
+  position: relative;
+  break-inside: avoid;
+  letter-spacing: 0.02em;
+}
+.rgb-comp > li::before { content: '•'; position: absolute; left: 0; top: 1.5px; }
+
+/* ── Salary sheet (mirrors the owner's paper sheet) ── */
+.rgb-salary-title { text-align: center; font-size: 15px; letter-spacing: 0.04em;
+  color: #1a1a1a; margin: 4px 0 10px; }
+.rgb-salary-title strong { font-size: 17px; font-weight: 800; }
+.rgb-salary-sub { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  color: #4a4436; margin: 14px 0 4px; }
+
+/* Dense grid — 12 columns have to fit A4 portrait. */
+.rgb-salary th, .rgb-salary td { font-size: 8px; padding: 3px 4px; }
+.rgb-salary th { text-align: left; line-height: 1.15; }
+.rgb-salary .c { text-align: center; }
+.rgb-salary .r { text-align: right; font-variant-numeric: tabular-nums; }
+.rgb-salary .rgb-pos { font-size: 6.5px; text-transform: uppercase; color: #6b6455; }
+.rgb-salary tfoot td { background: #F3EEE0; font-weight: 700; border-top: 2px solid #C9A227;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Owner signature block */
+.rgb-owner-sign { margin-top: 26px; width: 46%; }
+.rgb-owner-line { border-top: 1px solid #9a9382; }
+.rgb-owner-label { padding-top: 4px; font-size: 10px; color: #4a4436; }
+.rgb-owner-label span { font-size: 8px; color: #6b6455; }
+
+/* ── Rules / notes back page ── */
+.rgb-rules { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.rgb-rules li {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 4.5px 0; border-bottom: 1px solid #EDE6D3; font-size: 11px; color: #322d22;
+}
+.rgb-rules li:last-child { border-bottom: none; }
+/* isolate + ltr keeps "1." from rendering as ".1" inside an RTL row, where the
+   trailing period would otherwise be reordered to the left of the digit. */
+.rgb-rule-n {
+  flex: 0 0 auto; min-width: 16px; color: #8a6d15; font-weight: 700; font-size: 10px;
+  direction: ltr; unicode-bidi: isolate; text-align: left;
+}
+.rgb-rule-t { flex: 1 1 auto; }
+/* RTL rows: number sits on the right, text flows right-to-left. */
+.rgb-rules li[dir='rtl'] { flex-direction: row-reverse; text-align: right; }
+
+.rgb-notes {
+  border: 1px solid #E2D9C0; background: #FDFBF4; border-radius: 4px;
+  padding: 8px 12px; font-size: 11px; color: #4a4436; line-height: 1.9;
+  white-space: pre-wrap;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* Urdu (Nastaliq) needs a bigger size and much looser leading than Latin,
+   otherwise the descenders of one line collide with the next. */
+.rgb-urdu {
+  font-family: var(--font-urdu), 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  line-height: 2.35;
+  font-size: 12px;
+}
+.rgb-rules li.rgb-urdu { font-size: 12px; line-height: 2.35; padding: 6px 0; }
+
 /* Landscape page (petty-cash matrix inside the report) */
 .rgb-sheet-land { width: 297mm; min-height: 210mm; }
+/* On screen the wrapper is transparent; it only becomes a page box in print. */
+.rgb-landwrap { display: contents; }
+
+/* Tax condition in the slip header.
+   Deliberately quieter than the status badge next to it: a hairline rule and
+   letter-spaced small caps, so it reads as a standing condition rather than
+   competing with the PAID / OUTSTANDING chip. */
+.rgb-taxnote {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid rgba(166, 132, 28, 0.45);
+  border-radius: 3px;
+  background: rgba(201, 162, 39, 0.07);
+  color: #8a6f1c;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
 /* ═══ PRINT ═══ */
+
+.rgb-rulespage .rgb-body { padding-top: 14mm; }
+
+.rgb-userrole { display: block; font-size: 7.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #8a7a2e; margin-top: 1px; }
+
+/* ── Comments Card ─────────────────────────────────────
+   Reproduces the printed feedback card: dark label chips on the left, three
+   Excellent/Good/Poor boxes across, then the comments and customer panels. */
+.rgb-cc-title { text-align: center; font-family: var(--rgb-display, 'Playfair Display', Georgia, serif);
+  font-size: 19px; font-weight: 700; color: #1a1a1a; text-decoration: underline;
+  text-underline-offset: 4px; margin: 10px 0 16px; }
+
+.rgb-cc-grid { width: 100%; border-collapse: separate; border-spacing: 0 6px; margin-bottom: 14px; }
+.rgb-cc-cat { width: 34%; padding: 0; }
+.rgb-cc-catlabel { display: block; background: #2b2b2b; color: #fff; font-size: 12px; font-weight: 600;
+  padding: 4px 9px; letter-spacing: 0.01em; }
+.rgb-cc-colon { width: 16px; text-align: center; font-size: 12px; color: #1a1a1a; }
+.rgb-cc-opt { white-space: nowrap; padding-left: 10px; font-size: 12px; color: #1a1a1a; }
+.rgb-cc-optlabel { display: inline-block; min-width: 54px; }
+.rgb-cc-box { display: inline-block; width: 15px; height: 15px; border: 1.2px solid #1a1a1a;
+  vertical-align: -3px; margin-left: 4px; text-align: center; line-height: 13px; }
+
+.rgb-cc-panel { border: 1.2px solid #1a1a1a; margin-top: 12px; }
+.rgb-cc-panelhead { background: #2b2b2b; color: #fff; text-align: center; font-size: 12.5px;
+  font-weight: 600; padding: 4px 8px; }
+.rgb-cc-panelbody { padding: 12px 14px; }
+.rgb-cc-rule { border-bottom: 1px solid #555; height: 22px; margin: 0 10px; }
+.rgb-cc-written { font-size: 12.5px; line-height: 1.7; color: #1a1a1a; min-height: 62px; font-style: italic; }
+
+.rgb-cc-field { display: flex; align-items: flex-end; gap: 8px; padding: 7px 4px; font-size: 12.5px; color: #1a1a1a; }
+.rgb-cc-flabel { font-weight: 600; white-space: nowrap; }
+.rgb-cc-fval { flex: 1 1 auto; border-bottom: 1px solid #555; min-height: 17px; padding: 0 4px 1px; }
+
+.rgb-cc-link { margin-top: 14px; text-align: center; font-size: 10.5px; color: #6b6455; }
+.rgb-cc-slip { margin-top: 6px; text-align: right; font-size: 10px; color: #8a8574; }
+
 @media print {
-  @page { size: A4; margin: 0; }
-  @page landscape { size: A4 landscape; margin: 0; }
-  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  /* 8mm all round. `margin: 0` used to push the dark header/footer bands right
+     to the paper edge, and every laser/inkjet has a 4–6mm unprintable border —
+     which is what was slicing the top and bottom off the printed slip. 8mm
+     clears the widest of them and still leaves a generous sheet. */
+  @page { size: A4 portrait; margin: 8mm; }
+
+  /*
+   * The app runs a dark theme, and `color-scheme: dark` makes Chrome paint its
+   * dark canvas (#121212) behind the WHOLE sheet of paper — including the 8mm
+   * margins, which is the black band that showed down the left and right edges
+   * of every printout. Forcing the light scheme for print removes it. Setting
+   * html/body backgrounds to white does NOT help: the canvas is painted by the
+   * engine, not by any element.
+   */
+  :root, html, body { color-scheme: light !important; }
+  /* No named page. `@page name { size: A4 landscape }` + `page: name` is the
+     only CSS way to mix orientations, and Chrome's PRINT path ignores it (it
+     works in headless --print-to-pdf, which is what made this so slow to pin
+     down). The two wide sheets are rotated instead — see .rgb-landwrap. */
+
+  /* Breathing room inside both bands, on every document. `min-height` stops a
+     short footer collapsing to a thin strip that a printer can shave away. */
+  .rgb-band {
+    padding: 15px 16px 13px !important;
+    min-height: 20mm;
+  }
+  .rgb-band .rgb-flourish { margin-top: 2px !important; }
+  .rgb-band-footer {
+    padding: 12px 16px !important;
+    min-height: 12mm;
+    align-content: center;
+  }
+
+  /* Print the colours we asked for wherever the engine allows it. The SVG band
+     fill above is the belt-and-braces version for engines that don't. */
+  html, body, .rgb-sheet, .rgb-band, .rgb-band-footer, .rgb-cc-catlabel, .rgb-cc-panelhead {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* min-height:100vh (globals.css `body`, and .rgb-backdrop) MUST be cleared.
+     On paper 100vh resolves to a full page, so body and backdrop each become
+     exactly one page tall: the sheet's dark footer band ends up stranded in
+     the middle of the page and the leftover height spills a blank second page.
+     Height must come from the sheet's own content and nothing else. */
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
   .grain::before { display: none !important; }
   .rgb-toolbar { display: none !important; }
-  .rgb-backdrop { display: block; background: #fff; padding: 0; margin: 0; }
-  .rgb-sheet { box-shadow: none; width: 210mm; min-height: auto; }
+  /* Never scale the printed sheet — zoom is a screen affordance only. */
+  .rgb-zoom-wrap { transform: none !important; display: block !important; gap: 0 !important; }
+  .rgb-backdrop {
+    display: block;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+    min-height: 0 !important;
+    height: auto !important;
+    gap: 0 !important;
+  }
+  /* Explicit widths, never `100%`. The backdrop is as wide as its widest child
+     — the 297mm landscape sheet — so a percentage made EVERY sheet 297mm and
+     overflowed the portrait pages. A4 portrait less 8mm margins = 194mm. */
+  .rgb-sheet {
+    box-shadow: none;
+    width: 194mm !important;
+    max-width: none !important;
+    min-height: auto;
+  }
 
-  /* One-page documents (invoice, income): shrink to content, never spill */
-  .rgb-onepage { min-height: 0 !important; height: auto !important; max-height: 296mm; overflow: hidden; }
-  .rgb-onepage .rgb-body { flex: 0 0 auto; }
+  /* One-page documents (invoice, income) fill EXACTLY one printed page, with
+     the dark footer band pinned to the bottom edge like a letterhead.
+     Sizing to content (height:auto) strands the footer mid-page.
+
+     The height MUST be a physical unit, never `vh`: WebKit/Safari resolves
+     viewport units against the BROWSER WINDOW even when printing, so on a
+     window taller than a page the sheet overflows and the footer band lands
+     on page 2. 296mm = A4 height (297mm) less 1mm to absorb rounding, and
+     works because `@page { margin: 0 }` gives us the whole sheet. */
+  /* Sheet height: `min-height` only, set BELOW the smallest printable strip we
+     can expect — never a `height` that tries to match the page exactly.
+     The printable area varies with the print path: Chrome "Margins: None"
+     ≈297mm, Chrome "Default" ≈277mm, Safari/generic printer ≈271mm. Earlier
+     attempts at 296/272/250mm each overflowed one of those by a hair and threw
+     the footer onto a blank page (a 2-page slip printed as 4).
+     255mm clears all of them with room to spare, so the body can flex-grow and
+     push the footer band to the bottom of the sheet while each sheet still
+     occupies exactly ONE page. `min-height` (not `height`) means unusually long
+     content grows the sheet instead of being clipped. */
+  /* Default (Chrome/Edge/Firefox): `@page { margin: 0 }` is honoured, so the
+     full 297mm is printable and the footer band lands flush on the paper edge.
+     Verified against real headless-Chrome PDFs — 297mm still yields 2 pages.
+     `min-height` (not `height`) so an unusually long rules list grows the sheet
+     instead of being clipped. */
+  .rgb-onepage {
+    height: auto !important;
+    min-height: 281mm !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Safari enforces the generic printer's ~12.7mm margins regardless of
+     `@page { margin: 0 }`, leaving ~271mm printable. A 297mm sheet overflows
+     it and throws the footer onto a blank page — the 4-page bug. 265mm is the
+     largest value that reliably stays one page there. Class is set in
+     PrintShell from the user agent. */
+  .rgb-safari .rgb-onepage { min-height: 265mm !important; }
+  /* The body must GROW to absorb the slack; that is what pushes the footer
+     band down to the bottom of the page. `flex: 0 0 auto` here would let it
+     ride up right beneath the content. */
+  .rgb-onepage .rgb-body { flex: 1 1 auto; }
+  .rgb-onepage .rgb-band,
+  .rgb-onepage .rgb-band-footer { flex: 0 0 auto; }
+
+  /* Header and footer bands are deliberately TALL in print.
+     The 8mm page margin keeps them off the paper edge, and this padding keeps
+     the logo and the contact line well inside the band, so the few millimetres
+     a printer trims take dark background rather than artwork or text. */
+  /* Trimmed from 15/13: the invoice now carries its terms as well, and the
+     whole sheet has to clear Safari's ~271mm printable strip or the footer
+     band is pushed onto a second page. Still deep enough that a printer's
+     trim takes dark background rather than the wordmark. */
+  .rgb-onepage .rgb-band { padding: 11px 16px 9px !important; }
+  .rgb-onepage .rgb-body { padding-top: 13px; padding-bottom: 6px; }
+  .rgb-onepage .rgb-meta { padding: 2px 0 4px; margin-bottom: 5px; }
+  .rgb-onepage .rgb-kv td { padding: 2.6px 9px; }
+  .rgb-onepage .rgb-table th { padding: 4px 9px; }
+  .rgb-onepage .rgb-table td { padding: 2.4px 9px; }
+  .rgb-onepage .rgb-sec { margin: 6px 0 3px; }
+  .rgb-onepage .rgb-sum td { padding: 2.6px 0; }
+  .rgb-onepage .rgb-banner { margin-top: 6px; padding: 5px 16px; }
+  .rgb-onepage .rgb-terms { margin-top: 6px; padding: 5px 12px; line-height: 1.45; }
+  .rgb-onepage .rgb-signs { margin-top: 7px; }
+  /* The terms now share page 1 with everything else, so they run tight. */
+  .rgb-onepage .rgb-inline-terms { margin-top: 5px; padding: 5px 12px 4px; }
+  .rgb-onepage .rgb-inline-terms-list { font-size: 7.4px; line-height: 1.45; }
+  .rgb-onepage .rgb-inline-terms-list li.rgb-urdu { font-size: 9.5px; line-height: 1.75; }
+  .rgb-onepage .rgb-inline-terms--dense .rgb-inline-terms-list { font-size: 6.9px; line-height: 1.38; }
+  .rgb-onepage .rgb-inline-terms--x .rgb-inline-terms-list { font-size: 6.3px; line-height: 1.3; }
+  .rgb-onepage .rgb-stamp { width: 42px; height: 42px; }
+
+  /* ── Catering slip: fitting ONE page ────────────────
+     `@page` is 8mm, so A4 leaves exactly 281mm printable — the same figure
+     `.rgb-onepage` uses as its min-height. Zero tolerance: the catering slip
+     carries two tables and a summary where the invoice carries one, and the
+     footer band tipped onto page 2 in both Chrome and Safari.
+
+     Two fixes together. The sheet is shortened to 262mm so there is real slack
+     under Chrome's 281mm and Safari's ~271mm printable strip; and the content
+     is tightened by line count so it stays inside that 262mm.
+
+     Measured in the browser against the real quotations, content height:
+       15 lines   280.2mm  ->  246.9mm
+       17 lines   271.5mm  ->  255.1mm
+     Roughly 4mm per additional line at the tightest tier, so ~19 lines is the
+     ceiling before a slip needs a second page regardless. */
+  /* The letterhead artwork is content, not decoration: force it to print even
+     when the user leaves "background graphics" switched off. */
+  .rgb-logo-img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  .rgb-onepage.rgb-cater,
+  .rgb-safari .rgb-onepage.rgb-cater { min-height: 262mm !important; }
+
+  /* Applies at every length — the bands and the meta block are pure margin. */
+  .rgb-onepage.rgb-cater .rgb-band { padding: 7px 16px 6px !important; }
+  .rgb-onepage.rgb-cater .rgb-band-footer { padding: 5px 16px !important; }
+  .rgb-onepage.rgb-cater .rgb-meta { padding: 1px 0 2px; margin-bottom: 3px; }
+  .rgb-onepage.rgb-cater .rgb-kv td { padding: 1.6px 8px; }
+  .rgb-onepage.rgb-cater .rgb-sum td { padding: 1.1px 0; }
+  .rgb-onepage.rgb-cater .rgb-sec { margin: 3px 0 1.5px; }
+  .rgb-onepage.rgb-cater .rgb-signs { margin-top: 4px; padding-top: 5px; }
+
+  /* Tier 1 — padding only, type untouched. */
+  .rgb-onepage.rgb-cater--dense .rgb-body { padding-top: 10px; padding-bottom: 4px; }
+  .rgb-onepage.rgb-cater--dense .rgb-table th { padding: 3.2px 8px; }
+  .rgb-onepage.rgb-cater--dense .rgb-table td { padding: 1.7px 8px; }
+  .rgb-onepage.rgb-cater--dense .rgb-banner { margin-top: 4px; padding: 4px 16px; }
+  .rgb-onepage.rgb-cater--dense .rgb-stamp { width: 36px; height: 36px; }
+
+  /* Tier 2 — type starts coming down, still comfortably readable. */
+  .rgb-onepage.rgb-cater--x .rgb-body,
+  .rgb-onepage.rgb-cater--xx .rgb-body { padding-top: 8px; padding-bottom: 3px; }
+  .rgb-onepage.rgb-cater--x .rgb-table th,
+  .rgb-onepage.rgb-cater--xx .rgb-table th { padding: 2.6px 7px; font-size: 8.2px; }
+  .rgb-onepage.rgb-cater--x .rgb-table td,
+  .rgb-onepage.rgb-cater--xx .rgb-table td { padding: 1.2px 7px; font-size: 9.2px; }
+  .rgb-onepage.rgb-cater--x .rgb-banner,
+  .rgb-onepage.rgb-cater--xx .rgb-banner { margin-top: 3px; padding: 3.5px 16px; }
+  .rgb-onepage.rgb-cater--x .rgb-stamp { width: 32px; height: 32px; }
+
+  /* Tier 3 — the longest quotations. */
+  .rgb-onepage.rgb-cater--xx .rgb-table th { padding: 2.2px 6px; font-size: 8px; }
+  .rgb-onepage.rgb-cater--xx .rgb-table td { padding: 0.9px 6px; font-size: 8.8px; }
+  .rgb-onepage.rgb-cater--xx .rgb-kv td { padding: 1.3px 7px; }
+  .rgb-onepage.rgb-cater--xx .rgb-sum td { padding: 0.8px 0; }
+  .rgb-onepage.rgb-cater--xx .rgb-banner { margin-top: 2.5px; padding: 3px 16px; }
+  .rgb-onepage.rgb-cater--xx .rgb-signs { margin-top: 3px; padding-top: 4px; }
+  .rgb-onepage.rgb-cater--xx .rgb-stamp { width: 28px; height: 28px; }
+
+  /* Rules page: a real terms list runs to 13+ Urdu lines. Tighten the Nastaliq
+     leading for print so the whole list fits the 272mm sheet — `overflow:
+     hidden` above would otherwise silently CLIP terms off the bottom, which is
+     unacceptable for a document the customer signs. */
+  /* The rules sheet may GROW rather than clip. `min-height` keeps the footer
+     band on the bottom edge in the normal case (a 2-page slip), but if the
+     rules list ever outgrows one page it flows onto another instead of
+     silently losing terms the customer signs against. */
+  .rgb-backsheet { height: auto !important; min-height: 281mm !important; max-height: none !important; }
+  .rgb-safari .rgb-backsheet { min-height: 265mm !important; }
+
+  /* The footer band stays IN FLOW at the end of each sheet.
+     `position: fixed` was tried and reverted: WebKit/Safari does not reliably
+     repeat fixed elements on every printed page (Chrome does), so it is not a
+     dependable way to pin a per-page footer for this client, who prints from
+     Safari. In-flow + content-height sheets is browser-independent: each sheet
+     is well under one page, so the slip is always exactly 2 pages. */
+  .rgb-sheet .rgb-band-footer { display: flex !important; }
+
+  /* Nothing may create a page break inside a sheet. */
+  .rgb-sheet { break-inside: avoid; page-break-inside: avoid; }
+
+  /* The rules are the point of this page, so give them room. Sized up now that
+     the sheet is a full page; kept under ~255mm of content so the Safari path
+     (265mm sheet, ~271mm printable) still prints on ONE page.
+     Header and footer bands are deliberately untouched. */
+  .rgb-backsheet .rgb-body { padding-left: 10mm !important; padding-right: 10mm !important; }
+  .rgb-backsheet .rgb-rules li { padding: 5px 0; font-size: 12px; }
+  .rgb-backsheet .rgb-rules li.rgb-urdu { font-size: 14px; line-height: 2.1; padding: 6px 0; }
+  .rgb-backsheet .rgb-rule-n { min-width: 20px; font-size: 12px; }
+  .rgb-backsheet .rgb-notes { padding: 9px 12px; font-size: 12px; line-height: 1.8; }
+  .rgb-backsheet .rgb-notes.rgb-urdu { font-size: 14px; line-height: 2.1; }
+  .rgb-backsheet .rgb-sec { margin: 10px 0 5px; font-size: 10.5px; }
+  .rgb-backsheet .rgb-signs { margin-top: 14px; padding-top: 10px; }
+
+  /* Slips are two sheets: the invoice/enquiry, then the rules overleaf.
+     The break makes page 2 land on the BACK when printing double-sided. */
+  .rgb-frontsheet { break-after: page; page-break-after: always; }
+  .rgb-backsheet  { break-after: auto; page-break-after: auto; }
 
   /* Multi-page report: each sheet is its own page */
-  .rgb-report-sheet { break-after: page; page-break-after: always; }
+  /* Portrait report sheets (cover, income statement, monthly sale) get the
+     full 297−16 = 281mm; the two landscape ones are overridden below. */
+  .rgb-report-sheet { break-after: page; page-break-after: always; min-height: 281mm; }
   .rgb-report-sheet:last-child { break-after: auto; page-break-after: auto; }
-  .rgb-sheet-land { page: landscape; width: 297mm; min-height: auto; }
+  /* No `page: landscape` here. Named pages are ignored by most engines, so a
+     297mm sheet was being laid on a 210mm portrait page and cut off at 70% —
+     the petty-cash sheet stopped around day 22 of the month. Orientation is
+     now set per document by the route (see /print/report), and the sheet
+     simply fills whichever page box it gets. */
+  /* Petty-cash sheet and salary sheet: one column per day / twelve columns per
+     employee do not fit a 194mm portrait strip, so these two — and only these
+     two — print landscape. Page box 297×210 less 8mm margins = 281×194mm. */
+  /*
+   * Landscape sheets, without needing landscape paper.
+   *
+   * The wrapper is an ordinary PORTRAIT page box (194 × 281mm after the 8mm
+   * margins). The sheet inside it is laid out landscape (281 × 194mm) and
+   * rotated a quarter turn to fill that box, so the paper comes out of the
+   * printer portrait and is simply turned to read. This needs no mixed-page
+   * support from the browser, which is why it works where `@page` did not.
+   *
+   * rotate(90deg) about the top-left corner puts the box at x ∈ [−194, 0];
+   * the translateX brings it back to x ∈ [0, 194]. Transforms apply
+   * right-to-left, so the rotation happens first.
+   */
+  .rgb-landwrap {
+    display: block;
+    position: relative;
+    width: 194mm;
+    height: 281mm;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+  }
+  .rgb-landwrap:last-child { break-after: auto; page-break-after: auto; }
+
+  .rgb-landwrap > .rgb-sheet-land {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 281mm !important;
+    height: 194mm !important;
+    min-height: 194mm !important;
+    max-width: none !important;
+    transform: translateX(194mm) rotate(90deg);
+    transform-origin: 0 0;
+  }
+
+  /* The petty-cash matrix carries one row per expense head — around 32 of them
+     — and at the default row height it ran 194mm and spilled onto a second
+     landscape page. `!important` is needed because the cells set their padding
+     and font size inline, which a plain rule cannot override. */
+  .rgb-sheet-land .rgb-table td { padding: 1px 1px !important; line-height: 1.15 !important; }
+  .rgb-sheet-land .rgb-table th { padding: 2px 1px !important; line-height: 1.15 !important; }
 
   .rgb-page-break { break-before: page; }
   .rgb-avoid-break { break-inside: avoid; }
+}
+
+/* A total row inside a standard rgb-table — used by the catering slip's
+   per-section subtotals. */
+.rgb-table tr.rgb-row-total td {
+  font-weight: 700; background: #FDFBF4;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }

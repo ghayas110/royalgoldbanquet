@@ -4,11 +4,18 @@ import { useState, useTransition } from 'react';
 import { Card, Field, Input, Button } from '@/components/ui';
 import { createLead } from '@/lib/actions/misc';
 import { MessageCircle, Check, Send } from 'lucide-react';
+import { BRAND_DEFAULTS } from '@/lib/brand-info';
 
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP ?? '923159008065';
+// BRAND.whatsapp is the source of truth; the env var only exists so the number
+// can be changed on the server without a code edit (NEXT_PUBLIC_* is inlined at
+// build time, so a rebuild is still needed either way).
+// Falls back to the build-time number so the button still works if the page
+// forgets to pass the saved one.
+const FALLBACK_WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP || BRAND_DEFAULTS.whatsapp;
 
-export function WhatsAppFloat() {
-  const text = encodeURIComponent('Assalam o Alaikum! I would like to enquire about booking Royal Gold Banquet.');
+export function WhatsAppFloat({ whatsapp }: { whatsapp?: string }) {
+  const WHATSAPP = whatsapp || FALLBACK_WHATSAPP;
+  const text = encodeURIComponent('Assalam o Alaikum! I would like to enquire about booking Skylight Ballroom & Catering Service.');
   return (
     <a
       href={`https://wa.me/${WHATSAPP}?text=${text}`}
@@ -20,7 +27,8 @@ export function WhatsAppFloat() {
   );
 }
 
-export function EnquiryForm() {
+export function EnquiryForm({ whatsapp }: { whatsapp?: string }) {
+  const WHATSAPP = whatsapp || FALLBACK_WHATSAPP;
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [eventDate, setEventDate] = useState('');

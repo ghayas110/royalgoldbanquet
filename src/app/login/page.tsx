@@ -1,9 +1,21 @@
 import { LoginForm } from './login-form';
 import { BrandLockup } from '@/components/brand';
+import { getSessionUser } from '@/lib/session';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: 'Sign in — Royal Gold Banquet' };
+export const metadata = { title: 'Sign in — Skylight Ballroom & Catering' };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // The installed PWA launches at /login (manifest start_url). If the session
+  // is still valid, pass straight through to the dashboard instead of showing
+  // a sign-in form the user doesn't need.
+  const user = await getSessionUser();
+  if (user) redirect('/app');
+
+  return <LoginScreen />;
+}
+
+function LoginScreen() {
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
       {/* ambient gold glow */}

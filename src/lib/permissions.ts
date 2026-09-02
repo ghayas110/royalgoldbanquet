@@ -1,4 +1,4 @@
-import { type Permission, type Role, ROLE_DEFAULTS } from './types';
+import { type Permission, type Role, ROLE_DEFAULTS, LIVE_COOKING_PERMISSIONS, CATERING_PERMISSIONS } from './types';
 
 /**
  * Resolve the effective permission set for a user.
@@ -41,9 +41,44 @@ export const PERMISSION_META: Record<Permission, { label: string; group: string 
   'employees.manage': { label: 'Manage employees', group: 'Staff' },
   'halls.manage': { label: 'Manage halls', group: 'Admin' },
   'rules.manage': { label: 'Manage rules', group: 'Admin' },
+  'reviews.manage': { label: 'Manage guest reviews', group: 'Admin' },
+  'stock.view': { label: 'View stock', group: 'Stock' },
+  'stock.manage': { label: 'Manage stock', group: 'Stock' },
   'users.manage': { label: 'Manage users', group: 'Admin' },
   'settings.manage': { label: 'Manage settings', group: 'Admin' },
+  'livecooking.view': { label: 'View Live Cooking figures', group: 'Live Cooking' },
+  'catering.view': { label: 'Open the catering portal', group: 'Catering' },
+  'catering.manage': { label: 'Create & edit quotations, menu, customers', group: 'Catering' },
+  'catering.reports': { label: 'View catering financials', group: 'Catering' },
 };
+
+/**
+ * The real permission check — role shortcuts included.
+ *
+ * A Super Admin holds everything outright. An Owner holds everything EXCEPT
+ * the Live Cooking and Catering permissions: those must be granted explicitly,
+ * per user, which is what keeps those two business lines separate from the
+ * halls. Everyone else is judged purely on their resolved permission list.
+ *
+ * Lives here rather than in session.ts so client components (the sidebar, the
+ * access editor) can call it without dragging in next-auth server internals.
+ */
+export function effectiveCan(
+  role: Role,
+  perms: Permission[] | undefined,
+  perm: Permission,
+): boolean {
+  if (role === 'SUPER_ADMIN') return true;
+  if (role === 'OWNER'
+      && !LIVE_COOKING_PERMISSIONS.includes(perm)
+      && !CATERING_PERMISSIONS.includes(perm)) return true;
+  return can(perms, perm);
+}
+
+/** Ranks at or above Owner — the two roles allowed near irreversible actions. */
+export function isAdminRole(role: Role): boolean {
+  return role === 'SUPER_ADMIN' || role === 'OWNER';
+}
 
 export function can(perms: Permission[] | undefined, perm: Permission): boolean {
   return !!perms?.includes(perm);

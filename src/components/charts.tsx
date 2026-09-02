@@ -49,6 +49,13 @@ export function RevenueTrend({ data }: { data: { label: string; sale: number; ex
 }
 
 export function ExpenseDonut({ data }: { data: { name: string; value: number }[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[260px] w-full items-center justify-center text-sm text-[rgb(var(--text-muted))]">
+        No expenses recorded yet.
+      </div>
+    );
+  }
   const top = [...data].sort((a, b) => b.value - a.value).slice(0, 7);
   const rest = data.slice(7).reduce((s, d) => s + d.value, 0);
   const chartData = rest > 0 ? [...top, { name: 'Other', value: rest }] : top;
@@ -85,6 +92,7 @@ export function BookingsBar({ data }: { data: { label: string; count: number }[]
 }
 
 export function DonutLegend({ data }: { data: { name: string; value: number }[] }) {
+  if (!data || data.length === 0) return null;
   const top = [...data].sort((a, b) => b.value - a.value).slice(0, 8);
   return (
     <ul className="space-y-1.5">

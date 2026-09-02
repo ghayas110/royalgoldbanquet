@@ -2,10 +2,45 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "Royal Gold Banquet",
+      "name": "Skylight Ballroom",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "Skylight Ballroom (alt port)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "-p",
+        "3005"
+      ],
+      "port": 3005
+    },
+    {
+      "name": "Skylight Ballroom (LAN)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "-H",
+        "0.0.0.0",
+        "-p",
+        "3005"
+      ],
+      "port": 3005
+    },
+    {
+      "name": "Packaged build (standalone)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "cpanel-build/server.js"
+      ],
+      "port": 3007
     }
   ]
 }

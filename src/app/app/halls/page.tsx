@@ -2,7 +2,7 @@ import { requirePermission } from '@/lib/session';
 import { getAllHalls } from '@/lib/data';
 import { HallsClient } from './halls-client';
 
-export const metadata = { title: 'Halls — Royal Gold Banquet' };
+export const metadata = { title: 'Halls — Skylight Ballroom & Catering' };
 
 export default async function HallsPage() {
   await requirePermission('halls.manage');

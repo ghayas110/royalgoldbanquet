@@ -37,7 +37,7 @@ export function RulesClient({ rules }: { rules: Rule[] }) {
                       <Badge tone={catTone[r.category] ?? 'muted'}>{r.category}</Badge>
                       {!r.active && <Badge tone="muted">Hidden</Badge>}
                     </div>
-                    <p className="mt-1.5 text-sm text-[rgb(var(--text-muted))]">{r.body}</p>
+                    {r.body && <p className="mt-1.5 text-sm text-[rgb(var(--text-muted))]">{r.body}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Toggle checked={r.active} onChange={async (v) => { await toggleRule(r.id, v); flash(v ? 'Rule shown.' : 'Rule hidden.'); location.reload(); }} />
@@ -73,8 +73,8 @@ function RuleModal({ rule, onClose, onDone }: { rule: Rule | null; onClose: () =
       <div className="space-y-4">
         <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Advance to confirm" /></Field>
         <Field label="Category"><Select value={category} onChange={(e) => setCategory(e.target.value)}>{CATS.map((c) => <option key={c} value={c}>{c}</option>)}</Select></Field>
-        <Field label="Description">
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Describe the rule"
+        <Field label="Description" hint="Optional — the title alone is often enough">
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Optional extra detail"
             className="w-full rounded-xl bg-[rgb(var(--surface-2))] border border-[rgb(var(--border)/0.7)] px-3.5 py-2.5 text-sm text-[rgb(var(--text))] outline-none focus:border-[rgb(var(--gold)/0.6)]" />
         </Field>
         {error && <div className="rounded-lg border border-negative/30 bg-negative/10 px-3 py-2 text-sm text-negative">{error}</div>}

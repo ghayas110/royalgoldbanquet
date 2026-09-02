@@ -37,10 +37,37 @@ export async function createLead(input: unknown): Promise<{ ok: true } | { ok: f
   const parsed = leadSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0].message };
   const { name, phone, eventDate, message, source } = parsed.data;
-  await execute(
+  const res = await execute(
     `INSERT INTO leads (name, phone, event_date, message, source, status) VALUES (?,?,?,?,?,'NEW')`,
     [name, phone, eventDate || null, message || null, source],
   );
+
+  // Public form — nobody is signed in, so this is the only way staff hear
+  // about it. Never allowed to fail the submission for the visitor.
+  const { notifyLead } = await import('@/lib/notify');
+  await notifyLead({ leadId: res.insertId, name, phone, eventDate, message }).catch(() => undefined);
+
   revalidatePath('/app/leads');
   return { ok: true };
+}
+
+// ── Public availability check (no auth) ─────────────────
+import { getCalendarBookings } from '@/lib/data';
+import { monthRange } from '@/lib/format';
+
+export async function fetchPublicAvailability(year: number, month: number) {
+  const safeYear = Math.max(2025, Math.min(2035, Number(year) || 2026));
+  const safeMonth = Math.max(1, Math.min(12, Number(month) || 1));
+  const bookings = await getCalendarBookings(safeYear, safeMonth, true);
+  return {
+    year: safeYear,
+    month: safeMonth,
+    days: monthRange(safeYear, safeMonth).days,
+    bookings: bookings.map((b: any) => ({
+      date: b.event_date,
+      shift: b.shift,
+      hallId: Number(b.hall_id),
+      hallName: b.hall,
+    })),
+  };
 }

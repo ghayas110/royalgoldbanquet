@@ -3,7 +3,7 @@ import { getFloatLedger, getManagers, getBookingOptions } from '@/lib/data';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { FloatClient } from './float-client';
 
-export const metadata = { title: 'Manager Float — Royal Gold Banquet' };
+export const metadata = { title: 'Manager Float — Skylight Ballroom & Catering' };
 
 export default async function FloatPage() {
   const user = await requirePermission('float.view');

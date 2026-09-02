@@ -1,74 +1,104 @@
 import { cn } from '@/lib/format';
+import Image from 'next/image';
+import logoMark from '../../public/logo-mark.png';
+import logoLockup from '../../public/logo.png';
 
-/** Ornate filigree divider used above/below the wordmark. */
-function Flourish({ className }: { className?: string }) {
+/**
+ * Skylight Ballroom & Catering Service identity.
+ *
+ * The mark is a skylight seen from below: an octagonal glass roof with eight
+ * mullions running out to the frame and a burst of light at the centre. It is
+ * drawn as pure vector (no image asset) so it stays crisp in the sidebar, on
+ * the printed slip and inside the generated PWA icons, which are rasterised
+ * from this same geometry by `scripts/gen-icons.mjs`.
+ */
+
+/** Light-ray divider used above/below the wordmark. */
+function Rays({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 240 24" className={className} aria-hidden fill="none">
-      {/* center gem */}
-      <path d="M120 4 l7 8 -7 8 -7 -8 z" fill="currentColor" />
-      {/* tapering lines */}
-      <rect x="62" y="11.1" width="44" height="1.8" rx="0.9" fill="currentColor" />
-      <rect x="134" y="11.1" width="44" height="1.8" rx="0.9" fill="currentColor" />
-      {/* leaf accents beside gem */}
-      <path d="M106 12 c-6 -3.4 -12 -3.4 -18 0 c6 3.4 12 3.4 18 0 z" fill="currentColor" opacity="0.85" />
-      <path d="M134 12 c6 -3.4 12 -3.4 18 0 c-6 3.4 -12 3.4 -18 0 z" fill="currentColor" opacity="0.85" />
-      {/* end curls */}
-      <path d="M62 12 c-8 0 -12 -6 -20 -6 c-6 0 -10 4 -10 8 c0 3 2 5 5 5 c4 0 5 -4 2 -6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M178 12 c8 0 12 -6 20 -6 c6 0 10 4 10 8 c0 3 -2 5 -5 5 c-4 0 -5 -4 -2 -6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Compact RG emblem (roundel monogram) — favicon / tight spaces. */
-export function BrandMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={cn('h-9 w-9', className)} aria-hidden>
-      <defs>
-        <linearGradient id="rgGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#C9A227" />
-          <stop offset="45%" stopColor="#F0D67B" />
-          <stop offset="100%" stopColor="#A6841C" />
-        </linearGradient>
-      </defs>
-      <circle cx="24" cy="24" r="22" fill="none" stroke="url(#rgGold)" strokeWidth="1.4" />
-      <circle cx="24" cy="24" r="18.5" fill="none" stroke="url(#rgGold)" strokeWidth="0.7" opacity="0.55" />
-      <path d="M24 3.4 l2.6 2.6 -2.6 2.6 -2.6 -2.6 z" fill="url(#rgGold)" />
-      <path d="M24 39.4 l2.6 2.6 -2.6 2.6 -2.6 -2.6 z" fill="url(#rgGold)" />
-      <text x="24" y="30.5" textAnchor="middle" fontFamily="Playfair Display, Georgia, serif" fontSize="19" fontWeight="700" fill="url(#rgGold)" letterSpacing="-1">RG</text>
+      {/* centre gem — the light source */}
+      <path d="M120 5 l4.5 7 -4.5 7 -4.5 -7 z" fill="currentColor" />
+      {/* tapering beams */}
+      <rect x="60" y="11.2" width="48" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="132" y="11.2" width="48" height="1.6" rx="0.8" fill="currentColor" />
+      {/* secondary rays, fanning out */}
+      <path d="M108 12 l-14 -4.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+      <path d="M108 12 l-14 4.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+      <path d="M132 12 l14 -4.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+      <path d="M132 12 l14 4.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+      {/* end taper */}
+      <path d="M60 12 h-22" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.45" />
+      <path d="M180 12 h22" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.45" />
     </svg>
   );
 }
 
 /**
- * The full ornate "Royal Gold Banquet" wordmark — the primary logo.
- * Recreated as crisp vector/type from the client's booking slip.
- * `tone`: 'gold' (on dark) is default; 'onDark' forces gold for print bands.
+ * The house monogram, in the sidebar and anywhere the lockup is too wide.
+ *
+ * This is the client's own artwork rather than drawn geometry, so it stays in
+ * step with the printed slips and the app icon: all three come from the same
+ * source file through `npm run icons`.
+ *
+ * The PNG is transparent, so it sits on light and dark surfaces alike. The
+ * full lockup is `/logo.png`; this is the monogram alone.
  */
-export function RoyalGoldLogo({ className, size = 'md', flourish = true }: { className?: string; size?: 'sm' | 'md' | 'lg'; flourish?: boolean }) {
-  const scale = { sm: { title: 'text-2xl', sub: 'text-[9px]', fl: 'w-24' }, md: { title: 'text-4xl', sub: 'text-[11px]', fl: 'w-36' }, lg: { title: 'text-6xl', sub: 'text-sm', fl: 'w-52' } }[size];
+export function BrandMark({ className }: { className?: string }) {
   return (
-    <div className={cn('inline-flex flex-col items-center text-gold', className)}>
-      {flourish && <Flourish className={cn(scale.fl, 'mb-1 opacity-90')} />}
-      <div className={cn('font-display font-semibold leading-none text-gold-gradient', scale.title)}>
-        Royal<span className="mx-[0.06em]">Gold</span>
-      </div>
-      <div className={cn('mt-1 font-display italic tracking-[0.15em] text-gold-light', scale.sub === 'text-sm' ? 'text-lg' : scale.sub === 'text-[11px]' ? 'text-sm' : 'text-xs')}>
-        Banquet
-      </div>
-      {flourish && <Flourish className={cn(scale.fl, 'mt-1 rotate-180 opacity-90')} />}
-    </div>
+    <Image
+      src={logoMark}
+      alt=""
+      aria-hidden
+      // No placeholder: it is a small transparent PNG, and asking for one
+      // sends Next to the /_next/image endpoint that `unoptimized` disables.
+      placeholder="empty"
+      // The sidebar mark is on screen from the first paint on every signed-in
+      // page, so it is not a lazy-load candidate.
+      priority
+      className={cn('h-9 w-9 object-contain', className)}
+      draggable={false}
+    />
   );
 }
 
-/** Horizontal lockup for app chrome (sidebar / topbar). */
-export function BrandLockup({ compact }: { compact?: boolean }) {
+/**
+ * The full lockup, centred. Used where the brand is the whole point of the
+ * block: the top of a printed report, the customer-facing review page.
+ *
+ * Same artwork as the monogram and the app icon, so a customer sees one mark
+ * everywhere. Transparent, so it sits on either theme.
+ */
+export function SkylightLogo({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
+  const h = size === 'lg' ? 'h-28' : size === 'sm' ? 'h-14' : 'h-20';
+  return (
+    <Image
+      src={logoLockup}
+      alt="Skylight Ballroom & Catering Service"
+      placeholder="empty"
+      priority
+      className={cn('mx-auto w-auto object-contain', h, className)}
+      draggable={false}
+    />
+  );
+}
+
+export function BrandLockup({
+  compact,
+  name,
+  sub,
+}: { compact?: boolean; name?: string; sub?: string }) {
+  // Written as fallbacks rather than default parameters so an explicit
+  // `undefined` from a caller still lands on the house wordmark.
+  const line1 = name ?? 'Skylight';
+  const line2 = sub ?? 'Ballroom & Catering';
   return (
     <div className="flex items-center gap-2.5">
       <BrandMark />
       {!compact && (
         <div className="leading-tight">
-          <div className="font-display text-lg text-gold-gradient">Royal Gold</div>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--text-dim))]">Banquet · Karachi</div>
+          <div className="font-display text-lg text-gold-gradient">{line1}</div>
+          <div className="whitespace-nowrap text-[9px] uppercase tracking-[0.18em] text-[rgb(var(--text-dim))]">{line2}</div>
         </div>
       )}
     </div>

@@ -10,7 +10,9 @@ export type RuleResult = { ok: true; message?: string } | { ok: false; error: st
 
 const ruleSchema = z.object({
   title: z.string().min(2, 'Title required').max(200),
-  body: z.string().min(2, 'Description required').max(1000),
+  // Optional: many rules are a single self-explanatory line (e.g. "AC open 3 hrs")
+  // and forcing a second field just to save one is friction.
+  body: z.string().max(1000).optional().nullable().transform((v) => v?.trim() ?? ''),
   category: z.string().max(60).default('GENERAL'),
 });
 

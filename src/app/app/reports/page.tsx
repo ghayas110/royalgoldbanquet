@@ -1,15 +1,15 @@
 import { requirePermission, can } from '@/lib/session';
-import { getDefaultPeriod, getMonthlyFinancials, getFloatLedger, getPettyCashMatrix } from '@/lib/data';
+import { getDefaultPeriod, getMonthlyFinancials, getFloatLedger, getPettyCashMatrix, getBrand } from '@/lib/data';
 import { buildMonthlySale, buildIncomeStatement } from '@/lib/accounting';
 import { fmtMoney, fmtDate, monthLabelFull, resolvePeriod, MONTHS } from '@/lib/format';
 import { Card, FadeUp } from '@/components/ui';
 import { PeriodPicker } from '@/components/period-picker';
 import Link from 'next/link';
 import { Printer } from 'lucide-react';
-import { BrandLockup, RoyalGoldLogo } from '@/components/brand';
-import { BRAND } from '@/lib/brand-info';
+import { BrandLockup, SkylightLogo } from '@/components/brand';
 
-export const metadata = { title: 'Monthly Report — Royal Gold Banquet' };
+
+export const metadata = { title: 'Monthly Report — Skylight Ballroom & Catering' };
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('reports.generate');
@@ -17,7 +17,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const { year, month } = resolvePeriod(sp, await getDefaultPeriod());
 
-  const fin = await getMonthlyFinancials(year, month);
+  const [fin, BRAND] = await Promise.all([getMonthlyFinancials(year, month), getBrand()]);
   const ms = buildMonthlySale({ settled: fin.settled, newBookings: fin.newBookings, expenseLines: fin.expenseLines, disbursements: fin.disbursements, attribution: fin.attribution });
   const is = buildIncomeStatement({
     balanceAmount: ms.saleTotals.balance, banquetAmount: ms.saleTotals.banquet, advanceBookingSale: ms.newBookingTotal,
@@ -46,9 +46,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {/* Page 1 — Cover */}
       <div className="print-page">
-        <Card className="overflow-hidden text-center">
+        <Card className="overflow-hidden text-center relative">
+          <div className="print-watermark">CONFIDENTIAL</div>
           <div className="print-band" style={{ padding: '22px 16px' }}>
-            <RoyalGoldLogo size="lg" />
+            <SkylightLogo size="lg" />
           </div>
           <div className="p-8">
             <div className="text-xs uppercase tracking-[0.35em] text-[rgb(var(--text-dim))]">Monthly Report</div>
@@ -141,9 +142,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             foot={['TOTAL', fmtMoney(periodLedger.reduce((s, r) => s + r.amount_disbursed, 0), false), fmtMoney(periodLedger.reduce((s, r) => s + r.expenses_recorded, 0), false), fmtMoney(periodLedger.reduce((s, r) => s + r.amount_returned, 0), false), fmtMoney(periodLedger.reduce((s, r) => s + r.outstanding, 0), false), '']}
             rightCols={[1, 2, 3, 4]}
           />
-          <div className="mt-16 flex justify-between px-8 text-xs text-[rgb(var(--text-dim))]">
-            <div className="text-center"><div className="w-48 border-t border-[rgb(var(--border))]" /><div className="mt-1">Manager (Naseem)</div></div>
-            <div className="text-center"><div className="w-48 border-t border-[rgb(var(--border))]" /><div className="mt-1">Owner (Usama)</div></div>
+          <div className="print-signature-block no-print mt-16 flex justify-between px-8 text-xs text-[rgb(var(--text-dim))]">
+            <div className="print-signature-line text-center"><div className="w-48 border-t border-[rgb(var(--border))]" /><div className="mt-1">Manager (Naseem)</div></div>
+            <div className="print-signature-line text-center"><div className="w-48 border-t border-[rgb(var(--border))]" /><div className="mt-1">Owner (Usama)</div></div>
+          </div>
+          {/* Real print signature block */}
+          <div className="print-only print-signature-block" style={{ marginTop: '40px', padding: '0 40px' }}>
+            <div className="print-signature-line">Manager (Naseem)</div>
+            <div className="print-signature-line">Owner (Usama)</div>
           </div>
         </Card>
       </div>
@@ -162,9 +168,9 @@ function PageHead({ label, title }: { label: string; title: string }) {
 
 function Tile({ label, value, gold, small, count }: { label: string; value: number; gold?: boolean; small?: boolean; count?: boolean }) {
   return (
-    <div className={`rounded-xl border p-3 ${gold ? 'border-[rgb(var(--gold)/0.4)] bg-[rgb(var(--gold)/0.08)]' : 'border-[rgb(var(--border)/0.5)]'}`}>
-      <div className="text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]">{label}</div>
-      <div className={`mt-1 tnum font-display ${small ? 'text-base' : 'text-xl'} ${gold ? 'text-gold' : 'text-[rgb(var(--text))]'}`}>{count ? Math.round(value) : fmtMoney(value)}</div>
+    <div className={`print-report-kpi rounded-xl border p-3 ${gold ? 'print-report-kpi-gold border-[rgb(var(--gold)/0.4)] bg-[rgb(var(--gold)/0.08)]' : 'border-[rgb(var(--border)/0.5)]'}`}>
+      <div className="print-report-kpi-label text-[11px] uppercase tracking-wider text-[rgb(var(--text-dim))]">{label}</div>
+      <div className={`print-report-kpi-value mt-1 tnum font-display ${small ? 'text-base' : 'text-xl'} ${gold ? 'text-gold' : 'text-[rgb(var(--text))]'}`}>{count ? Math.round(value) : fmtMoney(value)}</div>
     </div>
   );
 }
@@ -172,7 +178,7 @@ function Tile({ label, value, gold, small, count }: { label: string; value: numb
 function MiniTable({ head, rows, foot, rightCols = [] }: { head: string[]; rows: string[][]; foot?: string[]; rightCols?: number[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs">
+      <table className="print-report-table w-full min-w-[720px] text-xs">
         <thead><tr className="border-b border-[rgb(var(--border)/0.5)] text-left uppercase tracking-wider text-[rgb(var(--text-dim))]">{head.map((h, i) => <th key={i} className={`px-2 py-1.5 font-medium ${rightCols.includes(i) ? 'text-right' : ''}`}>{h}</th>)}</tr></thead>
         <tbody>
           {rows.map((r, ri) => <tr key={ri} className="border-b border-[rgb(var(--border)/0.2)]">{r.map((c, ci) => <td key={ci} className={`px-2 py-1.5 ${rightCols.includes(ci) ? 'text-right tnum text-[rgb(var(--text))]' : 'text-[rgb(var(--text-muted))]'}`}>{c}</td>)}</tr>)}

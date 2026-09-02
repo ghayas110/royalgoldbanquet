@@ -1,5 +1,5 @@
 /**
- * ROYAL GOLD BANQUET — Accounting engine.
+ * SKYLIGHT BALLROOM — Accounting engine.
  *
  * ALL derived financial figures are computed here, in pure functions.
  * Never compute money in a component. Never let a human type a derived
@@ -113,14 +113,30 @@ export function buildMonthlySale(params: {
     total: sum(saleRows.map((r) => r.total)),
   };
 
-  const newBookingRows = newBookings.map((b, i) => ({
-    sNo: i + 1,
-    date: b.booking_date,
-    party: b.party_name,
-    slip: b.slip_no,
-    eventDate: b.event_date,
-    advance: money(b.advance_amount),
-  }));
+  /**
+   * Advances taken this month for events NOT already counted as sale.
+   *
+   * A booking taken and settled inside the same month appears in both lists:
+   * its value is in the Monthly Sale table above as balance + banquet, and its
+   * advance is here. Adding both to the income statement counted the same
+   * money twice — one 128,000 event reported 256,000.
+   *
+   * This line exists to capture cash in for events whose sale has not been
+   * recognised yet, so anything already in `settled` is excluded. It stays out
+   * of the table as well as the total: listing an event that has already
+   * happened under "advances received" would be wrong on its own terms.
+   */
+  const settledIds = new Set(settled.map((b) => b.id));
+  const newBookingRows = newBookings
+    .filter((b) => !settledIds.has(b.id))
+    .map((b, i) => ({
+      sNo: i + 1,
+      date: b.booking_date,
+      party: b.party_name,
+      slip: b.slip_no,
+      eventDate: b.event_date,
+      advance: money(b.advance_amount),
+    }));
   const newBookingTotal = sum(newBookingRows.map((r) => r.advance));
 
   const expenses = totalExpenses(expenseLines);

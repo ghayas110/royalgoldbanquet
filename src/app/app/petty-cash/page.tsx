@@ -3,7 +3,7 @@ import { getDefaultPeriod, getPettyCashData, getExpenseCategories } from '@/lib/
 import { resolvePeriod } from '@/lib/format';
 import { PettyCashClient } from './petty-cash-client';
 
-export const metadata = { title: 'Petty Cash — Royal Gold Banquet' };
+export const metadata = { title: 'Petty Cash — Skylight Ballroom & Catering' };
 
 export default async function PettyCashPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requirePermission('pettycash.view');

@@ -1,7 +1,9 @@
 'use client';
 
 import { NAV } from '@/lib/nav';
+import { NotificationBell } from '@/components/notification-bell';
 import type { Permission, Role } from '@/lib/types';
+import { effectiveCan } from '@/lib/permissions';
 import { BrandLockup, BrandMark } from './brand';
 import { cn } from '@/lib/format';
 import { useTheme } from './providers';
@@ -18,27 +20,77 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <C className={className} />;
 }
 
+/**
+ * The door between the two businesses.
+ *
+ * Catering is a separate portal with its own sidebar, and login drops everyone
+ * except the Catering role on /app — which left a Super Admin holding
+ * `catering.view` with the access but no way to reach it short of typing the
+ * URL. This is that way.
+ *
+ * Only shown to someone who can actually use the other side: crossing to
+ * catering needs `catering.view`, and the way back is hidden from the Catering
+ * role, who hold no ballroom permissions and would only bounce off /app.
+ */
+function PortalSwitch({ user, inCatering, onNavigate }: {
+  user: { role: Role; permissions: Permission[] };
+  inCatering: boolean;
+  onNavigate?: () => void;
+}) {
+  if (!effectiveCan(user.role, user.permissions, 'catering.view')) return null;
+  if (inCatering && user.role === 'CATERING') return null;
+
+  const target = inCatering
+    ? { href: '/app', label: 'Ballroom', icon: 'Building2' }
+    : { href: '/catering', label: 'Catering', icon: 'ChefHat' };
+
+  return (
+    <Link
+      href={target.href}
+      onClick={onNavigate}
+      title={`Switch to the ${target.label.toLowerCase()} portal`}
+      className="mb-2 flex items-center gap-3 rounded-xl border border-[rgb(var(--border)/0.6)] px-3 py-2.5 text-sm text-[rgb(var(--text-muted))] transition-all hover:border-[rgb(var(--gold)/0.4)] hover:bg-[rgb(var(--surface-2))] hover:text-gold"
+    >
+      <Icon name={target.icon} className="h-[18px] w-[18px]" />
+      <span className="flex-1">{target.label}</span>
+      <Icon name="ArrowRightLeft" className="h-3.5 w-3.5 opacity-60" />
+    </Link>
+  );
+}
+
 export function AppShell({
   user, children,
+  // Defaults keep the ballroom portal exactly as it was; the catering portal
+  // passes its own navigation, home route and wordmark so the two businesses
+  // never share a sidebar.
+  nav = NAV,
+  homeHref = '/app',
+  brandName,
+  brandSub,
 }: {
   user: { id: number; name?: string | null; email?: string | null; role: Role; permissions: Permission[] };
   children: React.ReactNode;
+  nav?: typeof NAV;
+  homeHref?: string;
+  brandName?: string;
+  brandSub?: string;
 }) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const [mobileNav, setMobileNav] = useState(false);
 
-  const items = NAV.filter((n) => user.role === 'OWNER' || user.permissions.includes(n.perm));
+  const items = nav.filter((n) => effectiveCan(user.role, user.permissions, n.perm));
   const mobileItems = items.filter((n) => n.mobile).slice(0, 5);
 
-  const isActive = (href: string) => (href === '/app' ? pathname === '/app' : pathname.startsWith(href));
+  const isActive = (href: string) => (href === homeHref ? pathname === homeHref : pathname.startsWith(href));
 
   return (
     <div className="min-h-screen">
       {/* ── Desktop sidebar ── */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-[rgb(var(--border)/0.5)] bg-[rgb(var(--surface)/0.6)] backdrop-blur-xl lg:flex">
-        <div className="px-5 py-6">
-          <BrandLockup />
+        <div className="flex items-center justify-between px-5 py-6">
+          <BrandLockup name={brandName} sub={brandSub} />
+          <NotificationBell align="left" />
         </div>
         <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
           {items.map((n) => (
@@ -58,14 +110,16 @@ export function AppShell({
           ))}
         </nav>
         <div className="border-t border-[rgb(var(--border)/0.5)] p-3">
+          <PortalSwitch user={user} inCatering={homeHref === '/catering'} />
           <UserMenu user={user} theme={theme} onToggleTheme={toggle} />
         </div>
       </aside>
 
       {/* ── Mobile top bar ── */}
-      <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-[rgb(var(--border)/0.5)] bg-[rgb(var(--surface)/0.85)] px-4 py-3 backdrop-blur-xl lg:hidden">
-        <BrandLockup compact />
+      <header className="no-print safe-t sticky top-0 z-30 flex items-center justify-between border-b border-[rgb(var(--border)/0.5)] bg-[rgb(var(--surface)/0.85)] px-4 pb-3 backdrop-blur-xl lg:hidden">
+        <BrandLockup compact name={brandName} sub={brandSub} />
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <button onClick={toggle} className="rounded-lg p-2 text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface-2))]" aria-label="Toggle theme">
             <Icon name={theme === 'dark' ? 'Sun' : 'Moon'} className="h-5 w-5" />
           </button>
@@ -99,6 +153,7 @@ export function AppShell({
                 ))}
               </nav>
               <div className="mt-4 border-t border-[rgb(var(--border)/0.5)] pt-3">
+                <PortalSwitch user={user} inCatering={homeHref === '/catering'} onNavigate={() => setMobileNav(false)} />
                 <UserMenu user={user} theme={theme} onToggleTheme={toggle} />
               </div>
             </motion.div>
@@ -112,7 +167,7 @@ export function AppShell({
       </main>
 
       {/* ── Mobile bottom tab bar ── */}
-      <nav className="no-print fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-[rgb(var(--border)/0.5)] bg-[rgb(var(--surface)/0.92)] px-2 py-2 backdrop-blur-xl lg:hidden">
+      <nav className="no-print safe-b fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-[rgb(var(--border)/0.5)] bg-[rgb(var(--surface)/0.92)] px-2 pt-2 backdrop-blur-xl lg:hidden">
         {mobileItems.map((n) => (
           <Link key={n.href} href={n.href} className={cn('flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px]',
             isActive(n.href) ? 'text-gold' : 'text-[rgb(var(--text-dim))]')}>
